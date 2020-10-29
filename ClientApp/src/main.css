@@ -1,0 +1,113 @@
+.navbarstyle {
+    position:fixed;
+    top:0;
+    left:0;
+    height:100%;
+    width:10%;
+    background-color:#17181B;
+    text-align:center;
+    border-right:1px solid #202226;
+    overflow:auto;
+}
+
+.buttonstyle {
+    width:100%;
+    text-align:center;
+    margin:0;
+    color:rgba(255,255,255,0.3);
+    line-height:45px;
+    background:none;
+    border:none;
+    border-bottom:1px solid rgba(255,255,255,0.1);
+}
+
+.NaviSubButtons {
+    display:none;
+}
+
+.buttonstyle_small {
+    border:none;
+    text-align:right;
+}
+
+.imageDiv {
+    float: left;
+    width: 198px;
+    height: 198px;
+    margin: 2px;
+    display:flex;
+}
+
+.addImage {
+    border:2px solid;
+    justify-content:center;
+    align-items:center;
+    cursor:pointer;
+}
+
+.thumbnail:hover {
+    cursor:pointer;
+    opacity:0.3;
+}
+
+
+.homepage {
+    width:100%;
+    height:100%;
+    background-color: #7373;
+}
+
+.main_page {
+    position:fixed;
+    left:10%;
+    width:90%;
+    height:100%;
+}
+
+
+.deleteImage {
+    z-index: 10;
+    position: fixed;
+    margin: 5px 2px;
+    background-color: #fff;
+    border-radius: 15px;
+    cursor: pointer;
+    opacity: 0.5;
+}
+
+.deleteImage:hover {
+    opacity:1;
+}
+
+.overlay {
+    z-index:20;
+    background-color:#17181B;
+    padding:20px;
+    position:absolute;
+    left:50%;
+    top:50%;
+    margin-left:-150px;
+    margin-top:-10%;
+    color:rgba(255,255,255,0.3);
+    width:300px;
+}
+
+.overlay input {
+    width:100%;
+    margin:5px 0;
+}
+
+.columnStyle {
+    background-color:grey;
+}
+
+legendStyle {
+    text-align:left;
+    vertical-align:top;
+    font-size:medium;
+}
+
+.bigImageDiv {
+    height:100%;
+    overflow:auto;
+}
