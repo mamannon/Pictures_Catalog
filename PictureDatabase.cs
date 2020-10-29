@@ -12,12 +12,14 @@ namespace Picture_Catalog
         public int Id { get; set; }
         public User cUser { get; set; }
         public string mPictureSet { get; set; }
+        public ICollection<Picture> cPictures { get; set; }
     }
 
     public class User
     {
         public int Id { get; set; }
         public string mName { get; set; }
+        public ICollection<PictureSet> cPictureSets { get; set; }
     }
 
     public class Picture
