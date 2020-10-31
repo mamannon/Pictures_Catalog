@@ -1,4 +1,15 @@
 ﻿
+/*
+ * USESWAGGER makro pitää määritellä seuraavissa tiedostoissa:
+ * Startup.cs, PictureServerController.cs.
+ */
+
+//Käytä swaggeria
+//#define USESWAGGER
+
+//Käytä itse koodaamaasi frontendiä
+#undef USESWAGGER
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,8 +24,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Picture_Catalog.Controllers
 {
-//    [Route("api/[controller]")]
-    [ApiController]
+
     public class PictureServerController : ControllerBase
     {
 
@@ -25,13 +35,14 @@ namespace Picture_Catalog.Controllers
             _context = context;
         }
 
-        //Tätä funktiota kutsutaan frontendin nappuloiden määrittämiseksi
-//        [HttpGet("Initialize")]
-        
-
-
+        //Tätä funktiota kutsutaan frontendin nappuloiden määrittämiseksi    
+#if USESWAGGER
+        [HttpGet("GetSets")]
+#else
         [HttpGet]
         [Route("api/Pictures/GetSets")]
+#endif
+        
         public IEnumerable<Button> Get()
         {
             try
@@ -63,6 +74,8 @@ namespace Picture_Catalog.Controllers
                 throw;
             }
         }
+
+        //Tällä funktiolla alustetaan tietokanta
         public static void Initialize(PictureDatabase _context)
         {
             _context.Database.EnsureCreated();
@@ -123,13 +136,14 @@ namespace Picture_Catalog.Controllers
             
         }
 
-        //Tätä funktiota kutsutaan tietyn kuvasetin kaikkien kuvien saamiseksi
-//        [HttpPost("GetAll")]
-        //[HttpPost]
-
-
-        [HttpPost]
-        [Route("api/Pictures/GetPictures/{id}")]
+        //Tätä funktiota kutsutaan tietyn kuvasetin kaikkien kuvien saamiseksi     
+#if USESWAGGER
+        [HttpPost("GetPictures")]
+#else
+        [HttpPost("GetPictures")]
+        [Route("api/Pictures/GetAllPictures/{id}")]
+#endif
+        
         public IEnumerable<Picture> GetAllPictures(int id)
         {
             //Luetaan tietokannasta kaikki kuvasetin kuvat listaan
@@ -144,9 +158,15 @@ namespace Picture_Catalog.Controllers
         }
 
 
-        [HttpPost]
-        [Route("api/Pictures/AddPictureset")]
-        public int AddSet(PictureSet set)
+        //Tällä funtiolla lisätään kuvakokoelma tietokantaan
+#if USESWAGGER
+        [HttpPost("AddPictureset")]
+#else
+        [HttpPost("AddPictureset")]
+        [Route("api/Pictures/PictureSet")]
+#endif
+        
+        public int AddSet([FromBody]PictureSet set)
         {
             try
             {
@@ -164,11 +184,16 @@ namespace Picture_Catalog.Controllers
             }
         }
 
-        //[HttpPost("Save")]
 
+        //Tällä funktiolla tallennetaan yksi kuva haluttuun kuvasettiin
+#if USESWAGGER
         [HttpPost("Save")]
-        [Route("SavePicture")]
-        public IEnumerable<Picture> SavePicture(Picture obj)
+#else
+        [HttpPost("Save")]
+        [Route("api/Pictures/SavePicture")]
+#endif
+        
+        public IEnumerable<Picture> SavePicture([FromBody]Picture obj)
         {
 
             //Tallennetaan uusi kuva tietokantaan
@@ -185,9 +210,7 @@ namespace Picture_Catalog.Controllers
             }
             return pictures;
 
-        }
-
-        
+        }    
     }
 }
 
