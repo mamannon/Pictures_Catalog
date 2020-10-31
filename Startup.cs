@@ -23,6 +23,7 @@ using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 
 using Picture_Catalog;
 using Microsoft.OpenApi.Models;
+using System.Linq;
 
 namespace Picture_Catalog
 {
@@ -40,16 +41,13 @@ namespace Picture_Catalog
         public void ConfigureServices(IServiceCollection services)
         {
 
-            services.AddDbContextPool<PictureDatabase>(options =>
-            options.UseMySql(Configuration.GetConnectionString("DefaultConnection")));
-
-
+#if USESWAGGER
             services.AddMvc();
+#endif
 
-
-
+#if !USESWAGGER
             services.AddControllersWithViews();
-
+#endif
 
 #if USESWAGGER
             services.AddSwaggerGen(c =>
@@ -60,8 +58,12 @@ namespace Picture_Catalog
                     Title = "PictureCatalog API",
                     Description = "Example of ASP.NET Core Web API"
                 });
+ //               c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
             });
 #endif
+
+            services.AddDbContextPool<PictureDatabase>(options =>
+            options.UseMySql(Configuration.GetConnectionString("DefaultConnection")));
 
             // In production, the React files will be served from this directory
             services.AddSpaStaticFiles(configuration =>
@@ -85,6 +87,7 @@ namespace Picture_Catalog
             app.UseSwagger();
             app.UseSwaggerUI(c => {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "PictureCatalog Test API v1");
+//                c.SwaggerEndpoint("./v1/swagger.json", "PictureCatalog Test API v1");
                 c.RoutePrefix = string.Empty;
             });
 #endif
