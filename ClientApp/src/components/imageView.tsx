@@ -5,6 +5,7 @@ import { Image } from 'cloudinary-react';
 import { XCircle, Plus } from 'react-bootstrap-icons';
 import dataholding from './Dataholding';
 import Login from './Login';
+import { Session } from "inspector";
 
 export default class imageView extends React.Component {
 
@@ -63,8 +64,8 @@ export default class imageView extends React.Component {
     }
 
     render() {
-
-        if (this.props.imagesByButtonClicked.length > 0) {
+        let storageusername = sessionStorage.getItem("username");
+        if (this.props.imagesByButtonClicked.length > 0 && storageusername !== null) {
             let images = [];
 
             //jos clickedNaviButton on true, käyttäjä ei ole klikannut yhtään thumbnailia
@@ -73,7 +74,7 @@ export default class imageView extends React.Component {
                 //Täällä luodaan thumbnail näkymä useilla pikkukuvilla
                 images = this.props.imagesByButtonClicked.map((picture, id) => {
                     return (
-                        <div className="imageDiv" onClick={this.onClick1} data-setid={picture.id} key={ id}>
+                        <div className="imageDiv" onClick={this.onClick1} data-setid={picture.id} key={id}>
                             <Image className="thumbnail" src={picture.mURL} width="198" height="198" gravity="center" crop="thumb" id={id} />
                             <XCircle size={24} className="deleteImage" onClick={(e) => { e.stopPropagation(); this.delete(e) }} />
                         </div>
@@ -86,7 +87,7 @@ export default class imageView extends React.Component {
                 let picture = this.props.imagesByButtonClicked[index];
                 images.push(
                     <div className="bigImageDiv" >
-                        <table style={{ width:"100%" }}>
+                        <table style={{ width: "100%" }}>
                             <tbody>
                                 <tr>
                                     <td style={{ width: "10px" }} onClick={this.onClick3} className="columnStyle"></td>
@@ -117,11 +118,19 @@ export default class imageView extends React.Component {
             return (
                 <div className="main_page">
                     {images}
-                
+
                     <div className="imageDiv addImage" onClick={this.add}>
                         <Plus size={64} />
                     </div>
-                
+
+                </div>
+            )
+        } else if (storageusername !== null) {
+            return (
+                <div className="main_page">
+                    <div className="imageDiv addImage" onClick={this.add}>
+                        <Plus size={64} />
+                    </div>
                 </div>
             )
         } else {
@@ -129,7 +138,7 @@ export default class imageView extends React.Component {
                 <div className="main_page">
                     <div>
                         <h1>Welcome to PicturePortal</h1>
-                        <Login/>
+                        <Login />
                     </div>
                 </div>
             )
