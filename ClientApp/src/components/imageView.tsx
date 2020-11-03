@@ -4,6 +4,7 @@ import * as rs from 'react-bootstrap';
 import { Image } from 'cloudinary-react';
 import { XCircle, Plus } from 'react-bootstrap-icons';
 import dataholding from './Dataholding';
+import Login from './Login';
 
 export default class imageView extends React.Component {
 
@@ -126,7 +127,10 @@ export default class imageView extends React.Component {
         } else {
             return (
                 <div className="main_page">
-                    <h2>Starting Page</h2>
+                    <div>
+                        <h1>Welcome to PicturePortal</h1>
+                        <Login/>
+                    </div>
                 </div>
             )
         }

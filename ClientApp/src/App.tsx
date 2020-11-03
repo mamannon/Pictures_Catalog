@@ -104,16 +104,3 @@ class App extends React.Component {
 }
 
 export default App;
-
-/*
- *
- * KOODI MITÄ EI VIELÄ KÄYTETÄ JNE
- * 
- */
-
-/*
-    //Haetaan kuvat kannasta
-    componentDidMount() {
-        
-       
-    }*/
