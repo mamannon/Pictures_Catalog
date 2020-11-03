@@ -111,3 +111,9 @@ legendStyle {
     height:100%;
     overflow:auto;
 }
+
+.form {
+    width:50%;
+    margin:auto;
+    margin-top:5%;
+}
