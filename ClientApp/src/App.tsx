@@ -79,7 +79,7 @@ class App extends React.Component {
 
     overlayVisibility = (data) => {
         this.setState({ overlayState: data });
-        if (this.state.overlayState === 0) this.getPicturesBySet();
+        if (data === 0) this.getPicturesBySet();
     }
 
 

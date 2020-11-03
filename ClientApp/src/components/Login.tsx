@@ -31,8 +31,10 @@ export default class Login extends React.Component {
 
 		if (event.target.name === "login") {
 			console.log(user.username + ": is logging in!");
+			sessionStorage.setItem("username",user.username);
 		} else {
 			console.log(user.username + ": is registering!");
+			sessionStorage.setItem("username",user.username);
         }
     }
 
