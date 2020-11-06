@@ -17,7 +17,7 @@ export default class overlay extends React.Component {
         //Tässä viedään uusi kuvasetti tietokantaan
         let set = {
             mPictureSet: name,
-            cUser: { mName:"Simo"}
+            cUser: { mName: "Simo" }
         }
 
         let request = {

@@ -140,8 +140,8 @@ namespace Picture_Catalog.Controllers
 #if USESWAGGER
         [HttpPost("GetPictures")]
 #else
-        [HttpPost("GetPictures")]
-        [Route("api/Pictures/GetAllPictures/{id}")]
+        [HttpPost]
+        [Route("api/Pictures/GetPictures/{id}")]
 #endif
         
         public IEnumerable<Picture> GetAllPictures(int id)
@@ -162,21 +162,20 @@ namespace Picture_Catalog.Controllers
 #if USESWAGGER
         [HttpPost("AddPictureset")]
 #else
-        [HttpPost("AddPictureset")]
-        [Route("api/Pictures/PictureSet")]
+        [HttpPost]
+        [Route("api/Pictures/AddPictureset")]
 #endif
-        
         public int AddSet([FromBody]PictureSet set)
         {
             try
             {
-                
+
                 PictureSet picSet = new PictureSet() { mPictureSet = set.mPictureSet, cUser = _context.dbUsers.First(c => c.mName == set.cUser.mName) };
                 _context.dbPictureSets.Add(picSet);
                 _context.SaveChanges();
-                
+
                 return 1;
-                
+
             }
             catch
             {
@@ -189,7 +188,7 @@ namespace Picture_Catalog.Controllers
 #if USESWAGGER
         [HttpPost("Save")]
 #else
-        [HttpPost("Save")]
+        [HttpPost]
         [Route("api/Pictures/SavePicture")]
 #endif
         
