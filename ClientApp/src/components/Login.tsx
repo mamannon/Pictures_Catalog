@@ -21,24 +21,32 @@ export default class Login extends React.Component {
 
 	onClick = (event) => {
 		event.preventDefault();
-		if (this.state.name < 3 || this.state.username.length < 3 || this.state.password.length < 8) {
-			alert("Username and name must be atleast 3 and password 8 characters long.");
-			return;
-		}
-
-		let user = {
-			name:this.state.name,
-			username: this.state.username,
-			password:this.state.password
-		}
-
+		let user;
 		if (event.target.name === "login") {
+			user = {
+				username: this.state.username,
+				password: this.state.password
+			}
+			if (this.state.username.length < 0 && this.state.password.length < 0) {
+				alert("Username or password cant be empty");
+				return;
+            }
 			console.log(user.username + ": is logging in!");
-			sessionStorage.setItem("username",user.username);
+			sessionStorage.setItem("username", user.username);
 		} else {
+			user = {
+				name: this.state.name,
+				username: this.state.username,
+				password: this.state.password
+			}
+			if (this.state.name.length < 3 || this.state.username.length < 3 || this.state.password.length < 8) {
+				alert("Username and name must be atleast 3 and password 8 characters long.");
+				return;
+			}
 			console.log(user.username + ": is registering!");
-			sessionStorage.setItem("username",user.username);
+			sessionStorage.setItem("username", user.username);
         }
+		
 	}
 
 	loginRegister = (event) => {
