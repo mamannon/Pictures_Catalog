@@ -86,8 +86,8 @@ namespace Picture_Catalog.Controllers
 
             IList<User> us = new List<User>()
             {
-                new User() { mName = "Mikael" },
-                new User() { mName = "Simo" },
+                new User() { mName = "Mikael", mUsername = "Mikael", mPassword = "testtest" },
+                new User() { mName = "Simo", mUsername = "Simo", mPassword = "testtest" },
 
             };
             _context.dbUsers.AddRange(us);
@@ -210,6 +210,45 @@ namespace Picture_Catalog.Controllers
             return pictures;
 
         }    
+
+        /// <summary>
+        /// Etsitään tietokannasta käyttäjä
+        /// </summary>
+        /// <param name="user">Käyttäjätiedot(username, password)</param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("api/Pictures/Login")]
+        public bool UserLogin([FromBody]User user)
+        {
+            try
+            {
+                var users = _context.dbUsers.FirstOrDefault(u => u.mUsername == user.mUsername && u.mPassword == user.mPassword);
+                if (users != null) return true;
+                return false;
+            }
+            catch (Exception e)
+            {
+                throw e;
+            }
+        }
+
+        [HttpPost]
+        [Route("api/Pictures/Register")]
+        public bool UserRegister([FromBody]User user)
+        {
+            try
+            {
+                User newUser = new User() { mName = user.mName, mUsername = user.mUsername, mPassword = user.mPassword };
+                _context.dbUsers.Add(newUser);
+                _context.SaveChanges();
+                return true;
+            }
+            catch (Exception e)
+            {
+
+                throw e;
+            }
+        }
     }
 }
 

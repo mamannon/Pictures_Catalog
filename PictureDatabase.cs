@@ -20,6 +20,8 @@ namespace Picture_Catalog
         public int Id { get; set; }
         public string mName { get; set; }
         public ICollection<PictureSet> cPictureSets { get; set; }
+        public string mUsername { get; set; }
+        public string mPassword { get; set; } 
     }
 
     public class Picture

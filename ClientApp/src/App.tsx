@@ -83,9 +83,8 @@ class App extends React.Component {
     }
 
 
-    componentDidMount() {
+    loadpicturesets = () => {
         this.getPicturesBySet();
-        
     }
     
 
@@ -96,7 +95,7 @@ class App extends React.Component {
         return (
             <div className="App">
                 <Navi getClickedButtonId={this.buttonState} imageSets={this.state.imageSet} overlay={ this.overlayVisibility}/>
-                <Images imagesByButtonClicked={this.state.chosenImageSet}/>
+                <Images imagesByButtonClicked={this.state.chosenImageSet} loadpicturesets={ this.loadpicturesets}/>
                 {overlay}
             </div>
         );
