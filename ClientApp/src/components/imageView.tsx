@@ -1,18 +1,17 @@
 ﻿import * as React from "react";
 import ".././main.css";
-import * as rs from 'react-bootstrap';
 import { Image } from 'cloudinary-react';
 import { XCircle, Plus } from 'react-bootstrap-icons';
 import dataholding from './Dataholding';
 import Login from './Login';
-import { Session } from "inspector";
 
 export default class imageView extends React.Component {
 
     constructor(props) {
         super(props);
         this.state = {
-            clickedThumbnail:0
+            clickedThumbnail: 0,
+            loggedIn:false
         }
     }
 
@@ -63,9 +62,16 @@ export default class imageView extends React.Component {
         alert("Lisää kuva");
     }
 
+    userLoggedIn = (data) => {
+        this.setState({ loggedIn: data });
+        this.props.loadpicturesets();
+    }
+
+    
+
     render() {
-        let storageusername = sessionStorage.getItem("username");
-        if (this.props.imagesByButtonClicked.length > 0 && storageusername !== null) {
+        let currentUser = sessionStorage.getItem("user");
+        if (this.props.imagesByButtonClicked.length > 0 && this.state.loggedIn) {
             let images = [];
 
             //jos clickedNaviButton on true, käyttäjä ei ole klikannut yhtään thumbnailia
@@ -125,7 +131,13 @@ export default class imageView extends React.Component {
 
                 </div>
             )
-        } else if (storageusername !== null) {
+        } else if (this.props.imagesByButtonClicked.length === 0 && this.state.loggedIn) {
+            return (
+                <div className="main_page">
+                    <h1>Welcome {currentUser}</h1>
+                </div>
+            )
+        } else if (this.state.loggedIn) {
             return (
                 <div className="main_page">
                     <div className="imageDiv addImage" onClick={this.add}>
@@ -138,7 +150,7 @@ export default class imageView extends React.Component {
                 <div className="main_page">
                     <div>
                         <h1>Welcome to PicturePortal</h1>
-                        <Login />
+                        <Login userLoggedIn={ this.userLoggedIn}/>
                     </div>
                 </div>
             )
