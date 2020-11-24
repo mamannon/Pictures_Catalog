@@ -5,10 +5,10 @@
  */
 
 //Käytä swaggeria
-//#define USESWAGGER
+#define USESWAGGER
 
 //Käytä itse koodaamaasi frontendiä
-#undef USESWAGGER
+//#undef USESWAGGER
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
