@@ -13,7 +13,14 @@ namespace Picture_Catalog
         public int Id { get; set; }
         public int mUserId { get; set; }
         public string mPictureSet { get; set; }
-        public List<int> cPictures { get; set; }
+        public List<PictureItem> cPictures { get; set; }
+    }
+
+    public class PictureItem
+    {
+        public int Id { get; set; }
+        public int mPictureId { get; set; }
+
     }
 
     public class User
@@ -21,14 +28,21 @@ namespace Picture_Catalog
         public int Id { get; set; }
         public string mPassword { get; set; }
         public string mUser { get; set; }
-        public List<PictureSet> cPictureSets { get; set; }
+        public string mName { get; set; }
+        public List<PictureSetItem> cPictureSets { get; set; }
+    }
+
+    public class PictureSetItem
+    {
+        public int Id { get; set; }
+        public int mPictureSetId { get; set; }
     }
 
     public class Picture
     {
         public int Id { get; set; }
 
-        public int mUserId { get; set; }
+        public string mPictureSet { get; set; }
 
         public string mURL { get; set; }
 
@@ -38,23 +52,11 @@ namespace Picture_Catalog
     public class Button
     {
 
-        public string mUser { get; set; }
+        public string mName { get; set; }
 
         public string mPictureSet { get; set; }
 
         public int mPSID { get; set; }
-    }
-
-    public class Log
-    {
-        public string mUser;
-        public string mPassword;
-    }
-
-    public class TempLog
-    {
-        public string mUser;
-        public int mTemporaryID;
     }
     
     public class PictureDatabase : DbContext
@@ -62,6 +64,8 @@ namespace Picture_Catalog
         public DbSet<Picture> dbPictures { get; set; }
         public DbSet<PictureSet> dbPictureSets { get; set; }
         public DbSet<User> dbUsers { get; set; }
+        public DbSet<PictureItem> dbPictureItems { get; set; }
+        public DbSet<PictureSetItem> dbPictureSetItems { get; set; }
 
         
         public PictureDatabase(DbContextOptions<PictureDatabase> options) : base(options) { }
