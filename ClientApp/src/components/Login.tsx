@@ -24,8 +24,8 @@ export default class Login extends React.Component {
 		event.preventDefault();
 		let user;
 		if (event.target.name === "login") {
-			if (this.state.username.length < 0 && this.state.password.length < 0) {
-				alert("Username or password cant be empty");
+			if (this.state.username.length <= 0 && this.state.password.length <= 0) {
+				alert("Username or password can't be empty");
 				return;
 			} else {
 				//tarkistetaan tietokannasta vastaavuus
@@ -97,6 +97,10 @@ export default class Login extends React.Component {
 		} else {
 			this.setState({ loginOrRegister: 2 });
         }
+	}
+
+	goBack = () => {
+		this.setState({loginOrRegister:0});
     }
 
 	render() {
@@ -125,6 +129,7 @@ export default class Login extends React.Component {
 							value={this.state.password} />
 					</Form.Field>
 					<Button onClick={this.onClick} name="register">Register</Button>
+					<Button onClick={ this.goBack}>Back</Button>
 				</Form>
 			)
 		} else if (this.state.loginOrRegister === 1) {
@@ -145,9 +150,10 @@ export default class Login extends React.Component {
 							value={this.state.password} />
 					</Form.Field>
 					<Button onClick={this.onClick} name="login">Login</Button>
+					<Button onClick={this.goBack}>Back</Button>
 				</Form>
 			)
-		} else {
+		} else if(this.state.loginOrRegister === 0){
 			return(
 				<div>
 					<Button onClick={this.loginRegister} name="login">Login</Button>

@@ -17,7 +17,7 @@ export default class overlay extends React.Component {
         //Tässä viedään uusi kuvasetti tietokantaan
         let set = {
             mPictureSet: name,
-            cUser: { mName: "Simo" }
+            cUser: { mUsername: sessionStorage.getItem("user") }
         }
 
         let request = {
@@ -40,6 +40,14 @@ export default class overlay extends React.Component {
             console.log("Server responded with error:", error);
         });
         //this.closeAll();
+    }
+    //lisätään kuva. kuvasetin id, url ja kuvateksti; Onko mahdollista hakea kuvasetin nimi backendin puolella ja lisätä se sitä kautta.
+    add = (event) => {
+        event.preventDefault();
+        let mLegend = document.getElementById("kuvateksti").value;
+        let mUrl = document.getElementById("kuvaurl").value;
+        let id = this.props.imagesetid;
+        console.log([id,mUrl,mLegend]);
     }
 
     closeAll = () => {
@@ -64,16 +72,17 @@ export default class overlay extends React.Component {
         if (this.state.content === 2) {
             return (
                 <div className="overlay">
-
+                    <h2>Lisää kuva</h2>
+                    <hr />
+                    <form>
+                        <input type="text" id="kuvateksti" placeholder="Lisää kuvateksti" />
+                        <input type="text" id="kuvaurl" placeholder="Lisää kuvan url" />
+                        <rs.Button variant="success" type="submit" onClick={this.add} style={{ float: "left" }}>Lisää</rs.Button>
+                        <rs.Button variant="danger" onClick={this.closeAll} style={{ float: "right" }}>Sulje</rs.Button>
+                    </form>
                 </div>
             )
         }
-        if (this.state.content === 3) {
-            return (
-                <div className="overlay">
-
-                </div>
-            )
-        }
+        
     }
 }

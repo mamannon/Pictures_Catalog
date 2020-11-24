@@ -170,7 +170,7 @@ namespace Picture_Catalog.Controllers
             try
             {
 
-                PictureSet picSet = new PictureSet() { mPictureSet = set.mPictureSet, cUser = _context.dbUsers.First(c => c.mName == set.cUser.mName) };
+                PictureSet picSet = new PictureSet() { mPictureSet = set.mPictureSet, cUser = _context.dbUsers.First(c => c.mUsername == set.cUser.mUsername) };
                 _context.dbPictureSets.Add(picSet);
                 _context.SaveChanges();
 

@@ -17,7 +17,9 @@ class App extends React.Component {
             images: [],
             imageSet: [],
             chosenImageSet: [],
-            overlayState:0//0 = ei näytetä overlayta, 1 = lisää kuvasetti, 2 = lisää kuva, 3 = poista kuva
+            overlayState: 0,//0 = ei näytetä overlayta, 1 = lisää kuvasetti, 2 = lisää kuva
+            start: true,
+            imageSetId:0
         } 
 
     }
@@ -54,6 +56,8 @@ class App extends React.Component {
      */
     buttonState = (id) => {
         dataholding.setClickedNaviButton(true);
+        this.setState({ start: false });
+        this.setState({imageSetId:id});
         let request = {
             method: "POST",
             headers: { "Content-type": "application/json" }
@@ -90,12 +94,12 @@ class App extends React.Component {
 
     render() {
         let overlay;
-        if (this.state.overlayState > 0) overlay = <Overlay contentId={this.state.overlayState} closeOverlay={ this.overlayVisibility}/>;
+        if (this.state.overlayState > 0) overlay = <Overlay contentId={this.state.overlayState} closeOverlay={this.overlayVisibility} imagesetid={ this.state.imageSetId}/>;
 
         return (
             <div className="App">
                 <Navi getClickedButtonId={this.buttonState} imageSets={this.state.imageSet} overlay={ this.overlayVisibility}/>
-                <Images imagesByButtonClicked={this.state.chosenImageSet} loadpicturesets={ this.loadpicturesets}/>
+                <Images imagesByButtonClicked={this.state.chosenImageSet} loadpicturesets={this.loadpicturesets} firstTime={this.state.start} overlay={this.overlayVisibility}/>
                 {overlay}
             </div>
         );

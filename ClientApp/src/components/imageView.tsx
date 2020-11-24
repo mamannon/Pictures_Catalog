@@ -11,7 +11,7 @@ export default class imageView extends React.Component {
         super(props);
         this.state = {
             clickedThumbnail: 0,
-            loggedIn:false
+            loggedIn: false
         }
     }
 
@@ -53,13 +53,12 @@ export default class imageView extends React.Component {
         if (event.target.parentElement.getAttribute("data-setid")) deleteImg = event.target.parentElement.getAttribute("data-setid");
         else if (event.target.parentElement.parentElement.getAttribute("data-setid")) deleteImg = event.target.parentElement.parentElement.getAttribute("data-setid");
         console.log(deleteImg);
-        alert("Poista kuva");
-
+        //tähän fetchi ja poistetaan kuva ID:llä
 
     }
 
-    add = (event) => {
-        alert("Lisää kuva");
+    add = () => {//kuvan lisäys löytyy overlay.tsx tiedostosta
+        this.props.overlay(2);
     }
 
     userLoggedIn = (data) => {
@@ -131,13 +130,14 @@ export default class imageView extends React.Component {
 
                 </div>
             )
-        } else if (this.props.imagesByButtonClicked.length === 0 && this.state.loggedIn) {
+        } else if (this.props.imagesByButtonClicked.length === 0 && this.state.loggedIn && this.props.firstTime) {//jos ei olla klikattu kvuasettiä ja ollaan kirjauduttu sisään
+            
             return (
                 <div className="main_page">
                     <h1>Welcome {currentUser}</h1>
                 </div>
             )
-        } else if (this.state.loggedIn) {
+        } else if (this.props.imagesByButtonClicked.length === 0 && this.state.loggedIn) {//jos ollaan kirjauduttu sisään; pitäisi saada näkyviin uuteen kuvasettiin
             return (
                 <div className="main_page">
                     <div className="imageDiv addImage" onClick={this.add}>
@@ -145,7 +145,7 @@ export default class imageView extends React.Component {
                     </div>
                 </div>
             )
-        } else {
+        } else {//kun tullaan sivulle
             return (
                 <div className="main_page">
                     <div>
