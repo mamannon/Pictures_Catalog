@@ -20,23 +20,36 @@ export default class Navi extends React.Component {
         this.props.overlay(1);
     }
 
+    logout = () => {
+        console.log("logout");
+        this.props.Logout();
+    }
+
     
     render() {
-        
+
+        if (sessionStorage.getItem("user") === null) {
+            return (
+                <div className="navbarstyle">
+
+                </div>
+            )
+        }
         if (this.props.imageSets.length > 0) {
             let sets = this.props.imageSets.map((name, index) => <rs.Button className="buttonstyle" onClick={this.onClick} key={index} data-id={ name[1]}>{name[0]}</rs.Button>);
             return (
                 <div className="navbarstyle">
                     {sets}
-                    <rs.Button className="buttonstyle" onClick={this.openOverlay}><Plus size={ 32} /></rs.Button>
+                    <rs.Button className="buttonstyle" onClick={this.openOverlay}><Plus size={32} /></rs.Button>
+                    <rs.Button className="buttonstyle" onClick={this.logout}>Logout</rs.Button>
                 </div>
             );
         } else {
             return (
                 <div className="navbarstyle">
-                    
+
                 </div>
-            )
+            ) 
         }
     }
 }

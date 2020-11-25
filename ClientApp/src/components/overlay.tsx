@@ -44,10 +44,36 @@ export default class overlay extends React.Component {
     //lisätään kuva. kuvasetin id, url ja kuvateksti; Onko mahdollista hakea kuvasetin nimi backendin puolella ja lisätä se sitä kautta.
     add = (event) => {
         event.preventDefault();
-        let mLegend = document.getElementById("kuvateksti").value;
-        let mUrl = document.getElementById("kuvaurl").value;
+        let mLegendTemp = document.getElementById("kuvateksti").value;
+        let mUrlTemp = document.getElementById("kuvaurl").value;
         let id = this.props.imagesetid;
-        console.log([id,mUrl,mLegend]);
+
+        let set = {
+            cPictureSet: { Id: parseInt(id)},
+            mUrl: mUrlTemp,
+            mLegend: mLegendTemp,
+            mPictureSet:""
+        }
+
+        let request = {
+            method: "POST",
+            headers: { "Content-type": "application/json" },
+            body: JSON.stringify(set)
+        }
+        fetch("api/Pictures/AddPicture", request).then(response => {
+            if (response.ok) {
+                response.json().then(data => {
+                    //console.log(data);
+                    this.closeAll();
+                }).catch(error => {
+                    console.log("Error parsing JSON:", error);
+                })
+            } else {
+                console.log("Server responded with status:", response.status);
+            }
+        }).catch(error => {
+            console.log("Server responded with error:", error);
+        });
     }
 
     closeAll = () => {
@@ -76,7 +102,7 @@ export default class overlay extends React.Component {
                     <hr />
                     <form>
                         <input type="text" id="kuvateksti" placeholder="Lisää kuvateksti" />
-                        <input type="text" id="kuvaurl" placeholder="Lisää kuvan url" />
+                        <input type="text" id="kuvaurl" placeholder="Lisää kuvan url (Cloudinary)" />
                         <rs.Button variant="success" type="submit" onClick={this.add} style={{ float: "left" }}>Lisää</rs.Button>
                         <rs.Button variant="danger" onClick={this.closeAll} style={{ float: "right" }}>Sulje</rs.Button>
                     </form>

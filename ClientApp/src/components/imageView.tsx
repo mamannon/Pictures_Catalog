@@ -54,7 +54,25 @@ export default class imageView extends React.Component {
         else if (event.target.parentElement.parentElement.getAttribute("data-setid")) deleteImg = event.target.parentElement.parentElement.getAttribute("data-setid");
         console.log(deleteImg);
         //tähän fetchi ja poistetaan kuva ID:llä
+        let request = {
+            method: "POST",
+            headers: { "Content-type": "application/json" }
+        }
 
+        fetch("/api/Pictures/RemovePicture/" + deleteImg, request).then(response => {
+            if (response.ok) {
+                response.json().then(data => {
+                    document.querySelector("[data-setid='" + deleteImg + "']").remove();
+                    alert("Image removed!");
+                }).catch(error => {
+                    console.log("Error parsing JSON:", error);
+                })
+            } else {
+                console.log("Server responded with status:", response.status);
+            }
+        }).catch(error => {
+            console.log("Server responded with error:", error);
+        });
     }
 
     add = () => {//kuvan lisäys löytyy overlay.tsx tiedostosta
@@ -70,6 +88,17 @@ export default class imageView extends React.Component {
 
     render() {
         let currentUser = sessionStorage.getItem("user");
+        console.log(currentUser);
+        if (currentUser === null) {
+            return (
+                <div className="main_page">
+                    <div>
+                        <h1>Welcome to PicturePortal</h1>
+                        <Login userLoggedIn={this.userLoggedIn} />
+                    </div>
+                </div>
+            )
+        }
         if (this.props.imagesByButtonClicked.length > 0 && this.state.loggedIn) {
             let images = [];
 

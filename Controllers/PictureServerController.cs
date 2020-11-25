@@ -157,6 +157,45 @@ namespace Picture_Catalog.Controllers
 
         }
 
+        //poistetaan kuva
+        [HttpPost]
+        [Route("api/Pictures/RemovePicture/{id}")]
+        public int RemovePictureFromDb(int id)
+        {
+            try
+            {
+                var picture = _context.dbPictures.FirstOrDefault(p => p.Id == id);
+                if(picture!=null)
+                {
+                    _context.dbPictures.Remove(picture);
+                    _context.SaveChanges();
+                }
+                return 1;
+            }
+            catch (Exception e)
+            {
+
+                throw e;
+            }
+        }
+
+        [HttpPost]
+        [Route("api/Pictures/AddPicture")]
+        public int AddPictureToDb([FromBody]Picture p)
+        {
+            try
+            {
+                Picture pic = new Picture() { mPictureSet = p.mPictureSet, mURL = p.mURL, mLegend = p.mLegend, cPictureSet = _context.dbPictureSets.FirstOrDefault(o => o.Id == p.cPictureSet.Id) };
+                _context.dbPictures.Add(pic);
+                _context.SaveChanges();
+                return 1;
+            }
+            catch (Exception e)
+            {
+
+                throw e;
+            }
+        }
 
         //Tällä funtiolla lisätään kuvakokoelma tietokantaan
 #if USESWAGGER
@@ -170,7 +209,7 @@ namespace Picture_Catalog.Controllers
             try
             {
 
-                PictureSet picSet = new PictureSet() { mPictureSet = set.mPictureSet, cUser = _context.dbUsers.First(c => c.mUsername == set.cUser.mUsername) };
+                PictureSet picSet = new PictureSet() { mPictureSet = set.mPictureSet, cUser = _context.dbUsers.FirstOrDefault(c => c.mUsername == set.cUser.mUsername) };
                 _context.dbPictureSets.Add(picSet);
                 _context.SaveChanges();
 

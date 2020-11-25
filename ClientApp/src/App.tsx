@@ -83,12 +83,21 @@ class App extends React.Component {
 
     overlayVisibility = (data) => {
         this.setState({ overlayState: data });
-        if (data === 0) this.getPicturesBySet();
+        if (data === 0) {
+            this.getPicturesBySet();
+            this.buttonState(this.state.imageSetId);
+        }
     }
 
 
     loadpicturesets = () => {
         this.getPicturesBySet();
+    }
+
+    logout = () => {
+        this.setState({imageSet:[]});
+        sessionStorage.removeItem("user");
+        console.log("User logged out!");
     }
     
 
@@ -98,7 +107,7 @@ class App extends React.Component {
 
         return (
             <div className="App">
-                <Navi getClickedButtonId={this.buttonState} imageSets={this.state.imageSet} overlay={ this.overlayVisibility}/>
+                <Navi getClickedButtonId={this.buttonState} imageSets={this.state.imageSet} overlay={this.overlayVisibility} Logout={ this.logout}/>
                 <Images imagesByButtonClicked={this.state.chosenImageSet} loadpicturesets={this.loadpicturesets} firstTime={this.state.start} overlay={this.overlayVisibility}/>
                 {overlay}
             </div>
