@@ -30,18 +30,18 @@ namespace Picture_Catalog.Controllers
     {
 
         private readonly PictureDatabase _context;
-        private List<TempLog> _currentUsers;
+        private static List<TempLog> _currentUsers = new List<TempLog>();
 
         public class Log
         {
-            public string mUser;
-            public string mPassword;
+            public string mUser { get; set; }
+            public string mPassword { get; set; }
         }
 
         public class TempLog
         {
-            public string mUser;
-            public int mTemporaryID;
+            public string mUser { get; set; }
+            public int mTemporaryID { get; set; }
         }
 
         public class PictureWrapper
@@ -59,19 +59,26 @@ namespace Picture_Catalog.Controllers
         public class IntWrapper
         {
             public int mKey { get; set; }
-            public int mInt { get; set; }
+            public int mPSID { get; set; }
+        }
+
+        public class Button
+        {
+            public string mName { get; set; }
+            public string mPictureSet { get; set; }
+            public int mPSID { get; set; }
         }
 
         public PictureServerController(PictureDatabase context)
         {
             _context = context;
-            _currentUsers = new List<TempLog>();
-            _currentUsers.Add(new TempLog() { mTemporaryID = 1, mUser = "Matti" });  //TODO: tämä rivi pitää poistaa!!!
         }
 
         //Tällä funktiolla kirjaudutaan sisään.
 #if USESWAGGER
-        [HttpPost("Login")]
+          [HttpPost("Login")]
+//        [HttpPost]
+//        [Route("api/Pictures/Login")]
 #else
         [HttpPost]
         [Route("api/Pictures/Login")]
@@ -85,18 +92,18 @@ namespace Picture_Catalog.Controllers
                 //Katsotaan löytyykö käyttäjää, jonka nimi ja salasana täsmäävät
                 IQueryable<User> user = null;
                 user = _context.dbUsers.Where(q => (q.mUser == passwd.mUser && q.mPassword == passwd.mPassword));
-                if (user != null)
+                if (user != null && passwd.mPassword != null && passwd.mUser != null)
                 {
 
                     //Jos käyttäjä on olemassa, luodaan sille tilapäinen käyttäjätunnus tätä loginsessiota varten.
                     int tunnus = new Random().Next(1, 100000000);
-                    _currentUsers.Add(new TempLog { mTemporaryID = tunnus, mUser = passwd.mUser });
+                    _currentUsers.Add(new TempLog(){ mTemporaryID = tunnus, mUser = passwd.mUser });
                     return tunnus;
                 }
             }
-            catch 
+            catch (Exception e) 
             {
-                throw;
+                throw e;
             }
 
             //Kirjautumisyritys evätään.
@@ -127,9 +134,9 @@ namespace Picture_Catalog.Controllers
                     return 1;
                 }
             }
-            catch
+            catch (Exception e)
             {
-                throw;
+                throw e;
             }
 
             //Kirjautumisyritys evätään.
@@ -161,15 +168,14 @@ namespace Picture_Catalog.Controllers
                     _context.SaveChanges();
 
                     //...ja annetaan sille tilapäinen käyttäjätunnus tätä loginsessiota varten.
- //                   int tunnus = new Random().Next(1, 100000000);   //TODO: kun kirjautuminen on mahdollistettu frontendissä, otetaan tämä rivi käyttöön.
-                    int tunnus = 1;  //TODO: Tämä rivi tulee poistaa käytöstä!
+                    int tunnus = new Random().Next(1, 100000000);   
                     _currentUsers.Add(new TempLog { mTemporaryID = tunnus, mUser = passwd.mUser });
                     return tunnus;
                 }
             }
-            catch
+            catch (Exception e)
             {
-                throw;
+                throw e;
             }
 
             //Uuden käyttäjän luonti epäonnistui.
@@ -181,13 +187,13 @@ namespace Picture_Catalog.Controllers
         [HttpGet("GetSets")]
 #else
         [HttpGet]
-        [Route("api/Pictures/GetSets")]
+        [Route("api/Pictures/GetSets/{id}")]
 #endif
         
-        public IEnumerable<Button> Get()
+        public IEnumerable<Button> Get(int id)
         {
 
-            int tempUser = 1; //TODO: tempUser on tilapäinen login tunnus, joka pitää frontendin toimittaa!!!
+            int tempUser = id; 
 
             // Katsotaan, onko käyttäjä olemassa.
             TempLog usr = null;
@@ -206,22 +212,22 @@ namespace Picture_Catalog.Controllers
                     //Tämä rivi lisää nappuloiden listaan käyttäjän ylänappulan
                     //buttons.Add(new Button() { mName = user.mName, mPictureSet = 0 });
 
-                    var psets = _context.dbPictureSets.Where(q => q.mUserId == user.Id);
+                    var psets = _context.dbPictureSets.Where(q => q.mUserId == user.UserId);
                     foreach (var pset in psets)
                     {
                         var button = new Button();
                         button.mName = user.mName;
                         button.mPictureSet = pset.mPictureSet;
-                        button.mPSID = pset.Id;
+                        button.mPSID = pset.PictureSetId;
                         buttons.Add(button);
                     }
                 }
 
                 return buttons;
             }
-            catch
+            catch (Exception e)
             {
-                throw;
+                throw e;
             }
         }
 
@@ -235,12 +241,61 @@ namespace Picture_Catalog.Controllers
 
             List<User> us = new List<User>()
             {
-                new User() { mUser = "Mikael", cPictureSets = new List<PictureSetItem>() },
-                new User() { mUser = "Simo", cPictureSets = new List<PictureSetItem>() },
+                new User() { mUser = "userMikael", mName = "Mikael", mPassword = "passMikael" },
+                new User() { mUser = "userSimo", mName = "Simo", mPassword = "passSimo" }
 
             };
+            /*
+            us[0].cPictureSets.Add(new PictureSet() { PictureSetId = 1 });
+            us[0].cPictureSets.Add(new PictureSet() { PictureSetId = 2 });
+            us[1].cPictureSets.Add(new PictureSet() { PictureSetId = 3 });
+            /*
+            _context.dbPictureSetItems.Add(us[0].cPictureSets[0]);
+            _context.dbPictureSetItems.Add(us[0].cPictureSets[1]);
+            _context.dbPictureSetItems.Add(us[1].cPictureSets[0]);
+            */
             _context.dbUsers.AddRange(us);
-            _context.SaveChanges();
+            try
+            {
+                _context.SaveChanges();
+            }
+            catch (Exception e)
+            {
+                int koe = 0;
+            }
+
+            List<PictureSet> ps = new List<PictureSet>()
+            {
+                new PictureSet() { mPictureSet = "Synttärit" },
+                new PictureSet() { mPictureSet = "Valmistujaiset" },
+                new PictureSet() { mPictureSet = "Kreikan matka" }
+            };
+            /*
+            ps[0].cPictures.Add(new Picture() { PictureId = 3 });
+            ps[0].cPictures.Add(new Picture() { PictureId = 4 });
+            ps[0].cPictures.Add(new Picture() { PictureId = 5 });
+            ps[1].cPictures.Add(new Picture() { PictureId = 1 });
+            ps[1].cPictures.Add(new Picture() { PictureId = 2 });
+            ps[2].cPictures.Add(new Picture() { PictureId = 6 });
+            ps[2].cPictures.Add(new Picture() { PictureId = 7 });
+            /*
+            _context.dbPictureItems.Add(ps[0].cPictures[0]);
+            _context.dbPictureItems.Add(ps[0].cPictures[1]);
+            _context.dbPictureItems.Add(ps[0].cPictures[2]);
+            _context.dbPictureItems.Add(ps[1].cPictures[0]);
+            _context.dbPictureItems.Add(ps[1].cPictures[1]);
+            _context.dbPictureItems.Add(ps[2].cPictures[0]);
+            _context.dbPictureItems.Add(ps[2].cPictures[1]);
+            */
+            _context.dbPictureSets.AddRange(ps);
+            try
+            {
+                _context.SaveChanges();
+            }
+            catch (Exception e)
+            {
+                int koe = 0;
+            }
 
             List<Picture> pi = new List<Picture>()
             {
@@ -250,43 +305,19 @@ namespace Picture_Catalog.Controllers
                 new Picture() { mLegend = "Synttärikuva2", mURL = "https://res.cloudinary.com/dogdkq0ux/image/upload/v1603184246/samples/food/fish-vegetables.jpg" },
                 new Picture() { mLegend = "Synttärikuva3", mURL = "https://res.cloudinary.com/dogdkq0ux/image/upload/v1603184260/samples/food/spices.jpg" },
                 new Picture() { mLegend = "Matkakuva1", mURL = "https://res.cloudinary.com/dogdkq0ux/image/upload/v1603184257/samples/landscapes/beach-boat.jpg" },
-                new Picture() { mLegend = "Matkakuva2", mURL = "https://res.cloudinary.com/dogdkq0ux/image/upload/v1603184261/samples/landscapes/nature-mountains.jpg" },
+                new Picture() { mLegend = "Matkakuva2", mURL = "https://res.cloudinary.com/dogdkq0ux/image/upload/v1603184261/samples/landscapes/nature-mountains.jpg" }
             };
             _context.dbPictures.AddRange(pi);
-            _context.SaveChanges();
-
-            List<PictureSet> ps = new List<PictureSet>()
+            try
             {
-                new PictureSet() { mPictureSet = "Synttärit",
-                    cPictures = new List<PictureItem>(),
-                    mUserId = _context.dbUsers.First(o => o.mUser == "Mikael").Id },
-                new PictureSet() { mPictureSet = "Valmistujaiset",
-                    cPictures = new List<PictureItem>(),
-                    mUserId = _context.dbUsers.First(o => o.mUser == "Mikael").Id },
-                new PictureSet() { mPictureSet = "Kreikan matka",
-                    cPictures = new List<PictureItem>(),
-                    mUserId = _context.dbUsers.First(o => o.mUser == "Simo").Id }
-            };
-            ps[0].cPictures.Add(new PictureItem() { mPictureId = _context.dbPictures.First(o => o.mLegend == "Synttärikuva1").Id });
-            ps[0].cPictures.Add(new PictureItem() { mPictureId = _context.dbPictures.First(o => o.mLegend == "Synttärikuva2").Id });
-            ps[0].cPictures.Add(new PictureItem() { mPictureId = _context.dbPictures.First(o => o.mLegend == "Synttärikuva3").Id });
-            ps[1].cPictures.Add(new PictureItem() { mPictureId = _context.dbPictures.First(o => o.mLegend == "Valmistujaiset1").Id });
-            ps[1].cPictures.Add(new PictureItem() { mPictureId = _context.dbPictures.First(o => o.mLegend == "Valmistujaiset2").Id });
-            ps[2].cPictures.Add(new PictureItem() { mPictureId = _context.dbPictures.First(o => o.mLegend == "Matkakuva1").Id });
-            ps[2].cPictures.Add(new PictureItem() { mPictureId = _context.dbPictures.First(o => o.mLegend == "Matkakuva2").Id });
-            _context.dbPictureSets.AddRange(ps);
-            _context.SaveChanges();
+                _context.SaveChanges();
+            }
+            catch (Exception e)
+            {
+                int koe = 0;
+            }
 
-            User mikael = _context.dbUsers.First(o => o.mUser == "Mikael");
-            mikael.cPictureSets.Add(new PictureSetItem() { mPictureSetId = _context.dbPictureSets.First(o => o.mPictureSet == "Synttärit").Id });
-            mikael.cPictureSets.Add(new PictureSetItem() { mPictureSetId = _context.dbPictureSets.First(o => o.mPictureSet == "Valmistujaiset").Id });
-            _context.SaveChanges();
-
-            User simo = _context.dbUsers.First(o => o.mUser == "Simo");
-            simo.cPictureSets.Add(new PictureSetItem() { mPictureSetId = _context.dbPictureSets.First(o => o.mPictureSet == "Kreikan matka").Id });
-            _context.SaveChanges();
             //Yllä oleva on testausta varten
-
 
         }
 
@@ -313,18 +344,18 @@ namespace Picture_Catalog.Controllers
             {
 
                 //Luetaan tietokannasta kaikki kuvasetin kuvat listaan. 
-                PictureSet picSet = _context.dbPictureSets.Find(id);
+                PictureSet picSet = _context.dbPictureSets.Find(id.mPSID);
                 foreach (var pic in picSet.cPictures)
                 {
                     pictures.Add(_context.dbPictures.Find(pic));
                 }
             }
-            catch
+            catch (Exception e)
             {
-                throw;
+                throw e;
             }
 
-            // Palautetaan kuvat tai null
+            // Palautetaan kuvat
             return pictures;
         }
 
@@ -356,7 +387,7 @@ namespace Picture_Catalog.Controllers
                 for (int i=0; i<picSet.cPictures.Count; i++)
                 {
                     Picture pic = null;
-                    pic = _context.dbPictures.First(q => picSet.cPictures[i].Id == q.Id);
+                    pic = _context.dbPictures.First(q => picSet.cPictures.ElementAt(i).mPictureId == q.PictureId);
 
                     //Jos kuvaa ei ole tietokannassa, lopetetaan ja palautetaan 0:
                     if (pic == null) return 0;
@@ -370,16 +401,16 @@ namespace Picture_Catalog.Controllers
                 }
 
                 //Kaikki kuvat löytyivät tietokannasta. Lisätään kuvasetti tietokantaan tämän käyttäjän nimiin.
-                picSet.mUserId = _context.dbUsers.First(q => user.mUser == q.mUser).Id;
+                picSet.mUserId = _context.dbUsers.First(q => user.mUser == q.mUser).UserId;
                 _context.dbPictureSets.Add(picSet);
                 _context.SaveChanges();
 
                 return 1;
 
             }
-            catch
+            catch (Exception e)
             {
-                throw;
+                throw(e);
             }
         }
 
@@ -411,7 +442,7 @@ namespace Picture_Catalog.Controllers
                 //Tallennetaan uusi kuva tietokantaan.
                 PictureSet picSet = null;
                 picSet = _context.dbPictureSets.First(q => q.mPictureSet == picSetName);
-                int userId = _context.dbUsers.First(o => o.mUser == user.mUser).Id;
+                int userId = _context.dbUsers.First(o => o.mUser == user.mUser).UserId;
                 if (picSet == null)
                 {
 
@@ -433,9 +464,9 @@ namespace Picture_Catalog.Controllers
                 }
                 return pictures;
             }
-            catch
+            catch (Exception e)
             {
-                throw;
+                throw e;
             }
         }
 
@@ -462,7 +493,7 @@ namespace Picture_Catalog.Controllers
             {
                 string picSetName = obj.mPicture.mPictureSet;
                 Picture pic = obj.mPicture;
-                int userId = _context.dbUsers.First(q => user.mUser == q.mUser).Id;
+                int userId = _context.dbUsers.First(q => user.mUser == q.mUser).UserId;
                 PictureSet picSet = null;
                 picSet = _context.dbPictureSets.First(q => (q.mPictureSet == picSetName && q.mUserId == userId));
 
@@ -471,8 +502,8 @@ namespace Picture_Catalog.Controllers
                 {
 
                     //Katsotaan, onko meillä poistettavaksi haluttua kuvaa...
-                    PictureItem p = null;
-                    p = picSet.cPictures.First(q => q.Id == pic.Id);
+                    PictureSetPicture p = null;
+                    p = picSet.cPictures.First(q => q.mPictureId == pic.PictureId);
                     if (p != null)
                     {
  //                       _context.dbPictureSets.Remove(picSet);
@@ -495,9 +526,9 @@ namespace Picture_Catalog.Controllers
                 }
                 return pictures;
             }
-            catch
+            catch (Exception e)
             {
-                throw;
+                throw e;
             }
         }
 
@@ -524,17 +555,17 @@ namespace Picture_Catalog.Controllers
             {
                 Picture pic = obj.mPicture;
                 int del = -1;
-                int userId = _context.dbUsers.First(q => user.mUser == q.mUser).Id;
+                int userId = _context.dbUsers.First(q => user.mUser == q.mUser).UserId;
 
                 foreach (var picSet in _context.dbPictureSets.Where(q => q.mUserId == userId))
                 {
 
                     //Katsotaan, onko meillä poistettavaksi haluttua kuvaa...
-                    PictureItem p = null;
-                    p = picSet.cPictures.First(q => (pic.Id == q.Id));
+                    PictureSetPicture p = null;
+                    p = picSet.cPictures.First(q => (pic.PictureId == q.mPictureId));
                     if (p != null)
                     {
-                        del = p.Id;
+                        del = p.mPictureId;
 
  //                       _context.dbPictureSets.Remove(picSet);
 
@@ -548,9 +579,9 @@ namespace Picture_Catalog.Controllers
                     _context.dbPictures.Remove(_context.dbPictures.Find(del));
                 _context.SaveChanges();
             }
-            catch
+            catch (Exception e)
             {
-                throw;
+                throw e;
             }
         }
 
