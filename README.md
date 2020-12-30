@@ -21,27 +21,82 @@ Sisäänkirjautuminen.
  
 
 ### Tietokanta
-#### Käyttäjä
+#### Käyttäjä User
 - id
 - käyttäjätunnus
 - salasana
-- lista kuvakokoelmista
+- käyttäjänimi
 
-#### Kuvakokoelma
+#### Kuvakokoelma PictureSet
 - id
 - käyttäjäID
-- kuvakokoelma nimi
-- lista kuvista
+- kuvakokoelman nimi
 
-#### Kuva
+#### Kuva Picture
 - id
+- käyttäjäID
 - url
 - kuvateksti
+- kuvakokoelman nimi
+
+#### Referenssitaulukko PictureSetPicture
+- kuvaID
 - kuvakokoelmaID
 
+#### Käyttöoikeuspyyntötaulukko AppliedRight
+- anovan käyttäjäID
+- omistajan käyttäjäID
+- kuvakokoelmaID
+
+#### Käyttöoikeustaulukko AllowedUser
+- omistajan käyttäjäID
+- käyttöoikeuden saaneen käyttäjätunnus
+- kuvakokoelman nimi
+
+### Rajapinnan tiedonvälitysluokat
+
+#### Application
+- kuvakokoelman nimi
+- kuvakokoelman omistajan nimi
+- kuvakokoelman katselijan nimi
+
+#### PictureWrapper
+- tilapäinen salasana
+- Picture luokka, sama kuin tietokannassa
+
+#### PictureSetWrapper
+- tilapäinen salasana
+- PictureSet luokka, sama kuin tietokannassa
+
+#### Picture luokka 
+-sama kuin tietokannassa
+
+#### Button
+- käyttäjänimi (ei käyttäjätunnus)
+- kuvakokoelman nimi
+- kuvakokoelmaID
+- boolean luvuilla 0 ja 1 toteutettuna, kertoo, voiko käyttäjä katsella kuvasetin kuvia
+
+#### IntWrapper
+- tilapäinen salasana
+- int luku, käytetään kuvakokoelman identifiointiin
+
+#### Subs
+- ehdotettu käyttäjänimi
+- ehdotettu käyttäjätunnus
+- ehdotettu salasana
+
+#### TempLog
+- käyttäjätunnus
+- tilapäinen salasana
+
+#### LogIn
+- käyttäjätunnus
+- varsinainen salasana
 
 ### TODO
-- kuvien lisäys
-- kuvien poisto
-- starting page
+- backendin testaus
+- frontendin kuvasettien ryhmittely käyttäjien mukaan
+- frontendin kuvasettien nappien väritys sen mukaan, voiko käyttäjä katsella kuvasettiä
+- ikkuna, jossa käyttäjä voi nähdä kuvasettiensä käyttöoikeudet ja muuttaa niitä
 - tyylit

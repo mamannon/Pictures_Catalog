@@ -11,11 +11,6 @@ namespace Picture_Catalog
     public class User
     {
 
-        public User()
-        {
-            this.cPictureSets = new HashSet<PictureSet>();
-        }
-
         public int UserId { get; set; }
         public string mPassword { get; set; }
         public string mUser { get; set; }
@@ -25,12 +20,6 @@ namespace Picture_Catalog
 
     public class PictureSet
     {
-
-        public PictureSet()
-        {
-            this.cPictures = new HashSet<PictureSetPicture>();
-            this.cAllowedUsers = new HashSet<AllowedUser>();
-        }
 
         public int PictureSetId { get; set; }
         public string mPictureSet { get; set; }
@@ -43,18 +32,16 @@ namespace Picture_Catalog
     public class AllowedUser
     {
         public int AllowedUserId { get; set; }
+        public int mOwnerUserId { get; set; }
         public string mAllowedUser { get; set; }
-        public int mPictureSetId { get; set; }
+        public string mPictureSet { get; set; }
+        public PictureSet PictureSet { get; set; }
     }
 
     public class Picture
     {
 
-        public Picture()
-        {
-            this.cPictureSets = new HashSet<PictureSetPicture>();
-        }
-
+        public int mUserId { get; set; }
         public int PictureId { get; set; }
         public string mPictureSet { get; set; }
         public string mURL { get; set; }
@@ -69,6 +56,14 @@ namespace Picture_Catalog
         public int mPictureSetId { get; set; }
         public int mPictureId { get; set; }
     }
+
+    public class AppliedRight
+    {
+        public int AppliedRightId { get; set; }
+        public int mApplicantUserId { get; set; }
+        public int mOwnerUserId { get; set; }
+        public int mPictureSetId { get; set; }
+    }
     
     public class PictureDatabase : DbContext
     {
@@ -76,6 +71,8 @@ namespace Picture_Catalog
         public DbSet<PictureSet> dbPictureSets { get; set; }
         public DbSet<User> dbUsers { get; set; }
         public DbSet<AllowedUser> dbAllowedUsers { get; set; }
+        public DbSet<PictureSetPicture> dbPictureSetPictures { get; set; }
+        public DbSet<AppliedRight> dbAppliedRights { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -87,7 +84,7 @@ namespace Picture_Catalog
                 entity.Property(e => e.mName).IsRequired();
                 entity.Property(e => e.mUser).IsRequired();
                 entity.Property(e => e.mPassword).IsRequired();
-                entity.HasMany(e => e.cPictureSets).WithOne();
+                entity.HasMany(e => e.cPictureSets).WithOne(e => e.User);
             });
 
             modelBuilder.Entity<PictureSet>(entity =>
@@ -95,31 +92,41 @@ namespace Picture_Catalog
                 entity.HasKey(e => e.PictureSetId);
                 entity.Property(e => e.mPictureSet).IsRequired();
                 entity.Property(e => e.mUserId).IsRequired();
-                entity.HasMany(e => e.cPictures).WithOne();
-                entity.HasMany(e => e.cAllowedUsers).WithOne();
-//                entity.HasOne(e => e.User).WithMany(e => e.cPictureSets).HasForeignKey(e => e.mUserId);  //TODO: tämä tarvitaan!!!
+                entity.HasMany(e => e.cAllowedUsers).WithOne(e => e.PictureSet);
             });
 
             modelBuilder.Entity<Picture>(entity =>
             {
                 entity.HasKey(e => e.PictureId);
                 entity.Property(e => e.mURL).IsRequired();
-                
+                entity.Property(e => e.mUserId).IsRequired();
             });
 
             modelBuilder.Entity<AllowedUser>(entity =>
             {
                 entity.HasKey(e => e.AllowedUserId);
                 entity.Property(e => e.mAllowedUser).IsRequired();
-                entity.Property(e => e.mPictureSetId).IsRequired();
+                entity.Property(e => e.mOwnerUserId).IsRequired();
+                entity.Property(e => e.mPictureSet).IsRequired();
             });
 
             modelBuilder.Entity<PictureSetPicture>(entity =>
             {
+                entity.Property(e => e.mPictureId).IsRequired();
+                entity.Property(e => e.mPictureSetId).IsRequired();
                 entity.HasKey(e => new { e.mPictureId, e.mPictureSetId });
                 entity.HasOne(e => e.Picture).WithMany(e => e.cPictureSets).HasForeignKey(e => e.mPictureId);
                 entity.HasOne(e => e.PictureSet).WithMany(e => e.cPictures).HasForeignKey(e => e.mPictureSetId);
             });
+
+            modelBuilder.Entity<AppliedRight>(entity =>
+            {
+                entity.HasKey(c => c.AppliedRightId);
+                entity.Property(e => e.mApplicantUserId).IsRequired();
+                entity.Property(e => e.mPictureSetId).IsRequired();
+                entity.Property(e => e.mOwnerUserId).IsRequired();
+            });
+
         }
 
         public PictureDatabase(DbContextOptions<PictureDatabase> options) : base(options) { }
