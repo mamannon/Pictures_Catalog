@@ -1,6 +1,6 @@
-﻿import { Session } from 'inspector';
-import * as React from 'react';
+﻿import * as React from 'react';
 import { Form, Button } from 'semantic-ui-react';
+import App from '../App';
 
 export default class Login extends React.Component {
 
@@ -10,7 +10,7 @@ export default class Login extends React.Component {
 			name:"",
             username: "",
 			password: "",
-			loginOrRegister: 0
+			loginOrRegister:0
         }
     }
 
@@ -24,69 +24,30 @@ export default class Login extends React.Component {
 		event.preventDefault();
 		let user;
 		if (event.target.name === "login") {
+			user = {
+				mUser: this.state.username,
+				mPassword: this.state.password
+			}
 			if (this.state.username.length < 0 && this.state.password.length < 0) {
 				alert("Username or password cant be empty");
 				return;
-			} else {
-				//tarkistetaan tietokannasta vastaavuus
-				user = {
-					mUsername: this.state.username,
-					mPassword: this.state.password
-				}
-
-				let request = {
-					method: "POST",
-					headers: { "Content-type": "application/json" },
-					body: JSON.stringify(user)
-				}
-				fetch("api/Pictures/Login", request).then(response => {
-					if (response.ok) {
-						response.json().then(data => {
-							if (data) {
-								this.props.userLoggedIn(data);
-								sessionStorage.setItem("user", user.mUsername);
-							}else 
-								alert("User not found");
-						}).catch(error => {
-							console.log("Error parsing JSON: ", error);
-						});
-                    }
-				}).catch(error => {
-					console.log("Server responded with error: ", error);
-				});
             }
+			console.log(user.username + ": is logging in!");
+//			sessionStorage.setItem("username", user.username);
+			this.props.login(user);
 		} else {
+			user = {
+				mName: this.state.name,
+				mUser: this.state.username,
+				mPassword: this.state.password
+			}
 			if (this.state.name.length < 3 || this.state.username.length < 3 || this.state.password.length < 8) {
 				alert("Username and name must be atleast 3 and password 8 characters long.");
 				return;
-			} else {
-				//viedään uusi käyttäjä kantaan
-				user = {
-					mName: this.state.name,
-					mUsername: this.state.username,
-					mPassword: this.state.password
-				}
-				let request = {
-					method: "POST",
-					headers: { "Content-type": "application/json" },
-					body: JSON.stringify(user)
-				}
-				fetch("api/Pictures/Register", request).then(response => {
-					if (response.ok) {
-						response.json().then(data => {
-							if (data) {
-								this.props.userLoggedIn(data);
-								sessionStorage.setItem("user",user.mUsername);
-								alert("Register successful!");
-							}
-						}).catch(error => {
-							console.log("Error parsing JSON: ", error);
-						});
-					}
-				}).catch(error => {
-					console.log("Server responded with error: ", error);
-				});
-            }
+			}
+			console.log(user.username + ": is registering!");
+//			sessionStorage.setItem("username", user.username);
+			this.props.subscribe(user);
         }
 		
 	}
@@ -128,8 +89,7 @@ export default class Login extends React.Component {
 				</Form>
 			)
 		} else if (this.state.loginOrRegister === 1) {
-			return (
-				<Form>
+			return (				<Form>
 					<Form.Field>
 						<label htmlFor="username">Username:</label>
 						<input type="text"

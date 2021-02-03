@@ -64,7 +64,7 @@ namespace Picture_Catalog
         public int mOwnerUserId { get; set; }
         public int mPictureSetId { get; set; }
     }
-
+    
     public class PictureDatabase : DbContext
     {
         public DbSet<Picture> dbPictures { get; set; }
