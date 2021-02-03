@@ -2,7 +2,7 @@
 import ".././main.css";
 import * as rs from 'react-bootstrap';
 
-export default class overlay extends React.Component {
+export default class Overlay extends React.Component {
 
     constructor(props) {
         super(props);

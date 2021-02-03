@@ -5,10 +5,10 @@
  */
 
 //Käytä swaggeria
-#define USESWAGGER
+//#define USESWAGGER
 
 //Käytä itse koodaamaasi frontendiä
-//#undef USESWAGGER
+#undef USESWAGGER
 
 using System;
 using System.Collections.Generic;
@@ -103,7 +103,7 @@ namespace Picture_Catalog.Controllers
         [HttpPost]
         [Route("api/Pictures/Login")]
 #endif
-        public int Login([FromBody]LogIn passwd)
+        public Subs Login([FromBody]LogIn passwd)
         {
 
             try
@@ -116,19 +116,19 @@ namespace Picture_Catalog.Controllers
 
                     //Jos käyttäjä on olemassa, luodaan sille tilapäinen käyttäjätunnus tätä loginsessiota varten.
                     int tunnus = new Random().Next(1, 100000000);
-                    _currentUsers.Add(new TempLog(){ mTemporaryID = tunnus, mUser = passwd.mUser });
-                    return tunnus;
+                    _currentUsers.Add(new TempLog() { mTemporaryID = tunnus, mUser = passwd.mUser });
+                    return new Subs { mName = user.mName, mPassword = tunnus.ToString(), mUser = user.mUser };
                 }
             }
             catch (Exception e) 
             {
                 Response.StatusCode=500;
-                return 0;
+                return null;
             }
 
             //Kirjautumisyritys evätään.
             Response.StatusCode = 422;
-            return 0;
+            return null;
         }
 
         /// <summary>
@@ -178,7 +178,7 @@ namespace Picture_Catalog.Controllers
         [HttpPost("Subscribe")]
 #else
         [HttpPost]
-        [Route("api/Pictures/Login")]
+        [Route("api/Pictures/Subscribe")]
 #endif
         public int Subscribe([FromBody] Subs passwd)
         {
@@ -221,13 +221,13 @@ namespace Picture_Catalog.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
 #if USESWAGGER
-        [HttpGet("GetSets")]
+        [HttpPost("GetSets")]
 #else
-        [HttpGet]
-        [Route("api/Pictures/GetSets/{id}")]
+        [HttpPost]
+        [Route("api/Pictures/GetSets")]
 #endif
         
-        public IEnumerable<Button> Get(int id)
+        public IEnumerable<Button> Get([FromBody] int id)
         {
             try
             {
@@ -243,6 +243,8 @@ namespace Picture_Catalog.Controllers
                 }
 
                 return GetButtons(_context.dbUsers.Single(e => e.mUser==usr.mUser));
+
+//                return null;
             }
             catch (Exception e)
             {
@@ -390,60 +392,61 @@ namespace Picture_Catalog.Controllers
             try
             {
 
-                int tempUser = id.mKey;
+                            int tempUser = id.mKey;
 
-                // Katsotaan, onko käyttäjä olemassa.
-                TempLog user = null;
-                user = _currentUsers.Find(q => q.mTemporaryID == tempUser);
-                if (user == null)
-                {
-                    Response.StatusCode = 403;
-                    return null;
-                }
+                            // Katsotaan, onko käyttäjä olemassa.
+                            TempLog user = null;
+                            user = _currentUsers.Find(q => q.mTemporaryID == tempUser);
+                            if (user == null)
+                            {
+                                Response.StatusCode = 403;
+                                return null;
+                            }
 
-                // Katsotaan, onko kuvasetti olemassa.
-                if (null == _context.dbPictureSets.Find(id.mPSID)) return null;
+                            // Katsotaan, onko kuvasetti olemassa.
+                            if (null == _context.dbPictureSets.Find(id.mPSID)) return null;
 
-                // Katsotaan, onko käyttäjällä oikeutta katsella tätä kuvasettiä.
-                PictureSet ps = _context.dbPictureSets.Single(c => c.PictureSetId == id.mPSID);
-                AllowedUser allow = _context.dbAllowedUsers.FirstOrDefault(
-                    e => (e.mAllowedUser == user.mUser || e.mAllowedUser == "##ALL##") 
-                    && e.mPictureSet == ps.mPictureSet);
-                if (allow == null)
-                {
+                            // Katsotaan, onko käyttäjällä oikeutta katsella tätä kuvasettiä.
+                            PictureSet ps = _context.dbPictureSets.Single(c => c.PictureSetId == id.mPSID);
+                            AllowedUser allow = _context.dbAllowedUsers.FirstOrDefault(
+                                e => (e.mAllowedUser == user.mUser || e.mAllowedUser == "##ALL##") 
+                                && e.mPictureSet == ps.mPictureSet);
+                            if (allow == null)
+                            {
 
-                    //Käyttäjällä ei ole oikeutta katsella kuvia, mutta välitetään
-                    //tieto hänen halustaan kuvasetin omistajan luettavaksi, jollei hän ole
-                    //jo tehnyt tätä.
-                    int applicantUserId = _context.dbUsers.Single(g => g.mUser == user.mUser).UserId;
-                    int ownerUserId = _context.dbPictureSets.Single(g => g.PictureSetId == id.mPSID).mUserId;
-                    if (null != _context.dbAppliedRights.FirstOrDefault(
-                        e => e.mApplicantUserId==applicantUserId && e.mOwnerUserId==ownerUserId
-                        && e.mPictureSetId==id.mPSID)) return null;
+                                //Käyttäjällä ei ole oikeutta katsella kuvia, mutta välitetään
+                                //tieto hänen halustaan kuvasetin omistajan luettavaksi, jollei hän ole
+                                //jo tehnyt tätä.
+                                int applicantUserId = _context.dbUsers.Single(g => g.mUser == user.mUser).UserId;
+                                int ownerUserId = _context.dbPictureSets.Single(g => g.PictureSetId == id.mPSID).mUserId;
+                                if (null != _context.dbAppliedRights.FirstOrDefault(
+                                    e => e.mApplicantUserId==applicantUserId && e.mOwnerUserId==ownerUserId
+                                    && e.mPictureSetId==id.mPSID)) return null;
 
-                    //Ei ole tehnyt, joten tehdään nyt
-                    AppliedRight ask = new AppliedRight()
-                    {
-                        mApplicantUserId = applicantUserId,
-                        mOwnerUserId = ownerUserId,
-                        mPictureSetId = id.mPSID
-                    };
-                    _context.dbAppliedRights.Add(ask);
-                    _context.SaveChanges();
+                                //Ei ole tehnyt, joten tehdään nyt
+                                AppliedRight ask = new AppliedRight()
+                                {
+                                    mApplicantUserId = applicantUserId,
+                                    mOwnerUserId = ownerUserId,
+                                    mPictureSetId = id.mPSID
+                                };
+                                _context.dbAppliedRights.Add(ask);
+                                _context.SaveChanges();
 
-                    //Sitten poistutaan tästä funktiosta.
-                    return null;
-                }
+                                //Sitten poistutaan tästä funktiosta.
+                                return null;
+                            }
 
-                //Luetaan tietokannasta kaikki kuvasetin kuvat listaan. 
-                PictureSet picSet = _context.dbPictureSets.Find(id.mPSID);
-                return GetPictures(picSet);
-            }
-            catch (Exception e)
-            {
-                Response.StatusCode = 500;
-                return null;
-            }
+                            //Luetaan tietokannasta kaikki kuvasetin kuvat listaan. 
+                            PictureSet picSet = _context.dbPictureSets.Find(id.mPSID);
+                            return GetPictures(picSet);
+                        }
+                        catch (Exception e)
+                        {
+                            Response.StatusCode = 500;
+                            return null;
+                        }
+
         }
 
 
@@ -661,8 +664,8 @@ namespace Picture_Catalog.Controllers
         }
 
         /// <summary>
-        /// Tällä funktiolla poistetaan yksi kuva käyttäjän valitsemasta kuvasetistä, mutta itse kuvaa ei poisteta 
-        /// tietokannasta.
+        /// Tällä funktiolla poistetaan yksi kuva käyttäjän valitsemasta kuvasetistä, mutta itse 
+        /// kuvaa ei poisteta tietokannasta, jos kuva esiintyy jossain toisessa kuvasetissä.
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
@@ -692,23 +695,48 @@ namespace Picture_Catalog.Controllers
 
 
                 string picSetName = obj.mPicture.mPictureSet;
-                Picture pic = obj.mPicture;
                 int userId = _context.dbUsers.First(q => user.mUser == q.mUser).UserId;
                 PictureSet picSet = null;
+                int pictureId = 0;
                 picSet = _context.dbPictureSets.First(q => (q.mPictureSet == picSetName && q.mUserId == userId));
 
-                //Jos kyseinen kuvasetti on olemassa...
-                if (picSet != null)
+                //Etsitään kuvaa avaimen avulla...
+                Picture pic = obj.mPicture;
+                pic = _context.dbPictures.FirstOrDefault(q => q.PictureId==pic.PictureId);
+                if (pic == null || pic.mUserId != userId || pic.mPictureSet != picSetName)
                 {
 
-                    //Katsotaan, onko meillä poistettavaksi haluttua kuvaa referenssitaulussa...
-                    PictureSetPicture p = null;
-                    p = picSet.cPictures.FirstOrDefault(q => q.mPictureId == pic.PictureId);
+                    //Avaimella ei saatu oikeaa kuvaa. Yritetään hakea URL osoitteella...
+                    pic = obj.mPicture;
+                    pictureId = _context.dbPictures.FirstOrDefault(q => q.mURL == pic.mURL).PictureId;
+                }
+                else
+                {
+
+                    //Avaimella saatiin oikea kuva
+                    pictureId = pic.PictureId;
+                }
+
+                //Jos kyseinen kuvasetti ja kuva ovat olemassa...
+                if (picSet != null && pictureId != 0)
+                {
+
+                    //Katsotaan, onko meillä poistettavaksi haluttua kuvaa referenssitaulussa.
+                    PictureSetPicture p = _context.dbPictureSetPictures.FirstOrDefault(
+                        q => q.mPictureId == pictureId);
                     if (p != null)
                     {
 
-                        //Poistetaan kuva annetun kuvasetin listauksesta
-                        picSet.cPictures.Remove(p);
+                        //Poistetaan kyseinen rivi referenssitaulusta.
+                        _context.dbPictureSetPictures.Remove(p);
+                        _context.SaveChanges();
+
+                        //Katsotaan, löytyykö kuva jostain muusta kuvasetistä.
+                        List<PictureSetPicture> temp = _context.dbPictureSetPictures.Where(
+                            e => e.mPictureId == pictureId).ToList();
+
+                        //Jos ei, tuhotaan kuva.
+                        if (temp.Count == 0) _context.dbPictures.Remove(pic);
                     }
 
                 }
@@ -793,12 +821,12 @@ namespace Picture_Catalog.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
 #if USESWAGGER
-        [HttpGet("GetApplications")]
+        [HttpPost("GetApplications")]
 #else
-        [HttpGet]
-        [Route("api/Pictures/GetApplicants")]
+        [HttpPost]
+        [Route("api/Pictures/GetApplications")]
 #endif
-        public IEnumerable<Application> GetApplications(int id)
+        public IEnumerable<Application> GetApplications([FromBody] int id)
         {
             int tempUser = id;
             List<Application> rights = new List<Application>();
@@ -836,12 +864,12 @@ namespace Picture_Catalog.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
 #if USESWAGGER
-        [HttpGet("GetAlloweds")]
+        [HttpPost("GetAlloweds")]
 #else
-        [HttpGet]
+        [HttpPost]
         [Route("api/Pictures/GetAlloweds")]
 #endif
-        public IEnumerable<Application> GetAlloweds(int id)
+        public IEnumerable<Application> GetAlloweds([FromBody] int id)
         {
             int tempUser = id;
             List<Application> rights = new List<Application>();
@@ -957,7 +985,7 @@ namespace Picture_Catalog.Controllers
             PictureSet temp = picSet;
 
             //Ensin lisätään kuvakokoelma tietokantaan, jollei saman nimistä ole jo olemassa
-            if (null == _context.dbPictureSets.FirstOrDefault(e => e.mPictureSet == picSet.mPictureSet))
+            if (null == _context.dbPictureSets.FirstOrDefault(e => e.mPictureSet == temp.mPictureSet))
             { 
                 temp.cAllowedUsers = null;
                 temp.cPictures = null;
@@ -969,12 +997,14 @@ namespace Picture_Catalog.Controllers
 
             //Sitten katsotaan, onko kuvakokoelmaan sisällytetty kuvien viittauksia, ja jos on, 
             //lisätään niiden viittaukset tähän kovakokoelmaan, jos sellaiset kuvat ovat 
-            //valmiiksi tallennetut tietokantaan.
+            //valmiiksi tallennetut tietokantaan tämän käyttäjän omistamiksi.
             if (picSet.cPictures != null)
             {
                 foreach (var pic in picSet.cPictures)
                 {
-                    if (null != _context.dbPictures.Find(pic.mPictureId))
+
+                    Picture p = _context.dbPictures.Find(pic.mPictureId);
+                    if (null != p && p.mUserId == temp.mUserId)
                     {
 
                         //Emme anna käyttäjän määritellä mihin kuvakokoelmaan kuva liitetään...

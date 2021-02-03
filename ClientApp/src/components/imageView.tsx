@@ -7,10 +7,11 @@ import dataholding from './Dataholding';
 import Login from './Login';
 import { Session } from "inspector";
 
-export default class imageView extends React.Component {
+export default class ImageView extends React.Component {
 
     constructor(props) {
         super(props);
+        this.thumbnail = React.createRef();
         this.state = {
             clickedThumbnail:0
         }
@@ -46,17 +47,22 @@ export default class imageView extends React.Component {
         }
     }
 
-    delete = (event) => {
-        let deleteImg;
-        /**
-         * Napataan kuvan tietokannan id. Ikonin sisään tulee toinen divi luontivaiheessa joten piti tehdä alla oleva ratkaisu if else if 
-         */
-        if (event.target.parentElement.getAttribute("data-setid")) deleteImg = event.target.parentElement.getAttribute("data-setid");
-        else if (event.target.parentElement.parentElement.getAttribute("data-setid")) deleteImg = event.target.parentElement.parentElement.getAttribute("data-setid");
-        console.log(deleteImg);
-        alert("Poista kuva");
+    /**
+     * Käyttäjä haluaa poistaa valitsemansa kuvan kuvasetistä.
+     */
+    remove = (event) => {
+        let removeImg = event.currentTarget.id;
 
-
+        //Kysytään käyttäjältä varmistus, että hän todella haluaa poistaa kuvan kuvasetistä.
+        if (window.confirm("Poistetaanko kuva?")) {
+            console.log("Removing image " + removeImg);
+            let picture = {
+                PID: removeImg,
+                pictureSet: this.props.imagesByButtonClicked.find(e => e.pictureId == removeImg).mPictureSet
+//                url: this.props.imagesByButtonClicked.find(e => e.pictureId == removeImg).mURL 
+            };
+            this.props.removePicture(picture);
+        }
     }
 
     add = (event) => {
@@ -64,7 +70,7 @@ export default class imageView extends React.Component {
     }
 
     render() {
-        let storageusername = sessionStorage.getItem("username");
+        let storageusername = sessionStorage.getItem("user");
         if (this.props.imagesByButtonClicked.length > 0 && storageusername !== null) {
             let images = [];
 
@@ -72,11 +78,11 @@ export default class imageView extends React.Component {
             if (dataholding.getClickedNaviButton() === true) {
 
                 //Täällä luodaan thumbnail näkymä useilla pikkukuvilla
-                images = this.props.imagesByButtonClicked.map((picture, id) => {
+                images = this.props.imagesByButtonClicked.map((picture) => {
                     return (
-                        <div className="imageDiv" onClick={this.onClick1} data-setid={picture.id} key={id}>
-                            <Image className="thumbnail" src={picture.mURL} width="198" height="198" gravity="center" crop="thumb" id={id} />
-                            <XCircle size={24} className="deleteImage" onClick={(e) => { e.stopPropagation(); this.delete(e) }} />
+                        <div className="imageDiv" onClick={this.onClick1} >
+                            <Image className="thumbnail" src={picture.mURL} width="198" height="198" gravity="center" crop="thumb" />
+                            <XCircle size={24} className="deleteImage" onClick={(e) => { e.stopPropagation(); this.remove(e) }} id={picture.pictureId} />
                         </div>
                     )
                 });
@@ -138,7 +144,7 @@ export default class imageView extends React.Component {
                 <div className="main_page">
                     <div>
                         <h1>Welcome to PicturePortal</h1>
-                        <Login />
+                        <Login subscribe={this.props.subscribe} login={this.props.login} />
                     </div>
                 </div>
             )
