@@ -24,6 +24,7 @@ using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using Picture_Catalog;
 using Microsoft.OpenApi.Models;
 using System.Linq;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 
 namespace Picture_Catalog
 {
@@ -61,7 +62,7 @@ namespace Picture_Catalog
  //               c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
             });
 #endif
-
+            //T‰m‰ lis‰‰ MySQL tietokantakontekstin.
             services.AddDbContextPool<PictureDatabase>(options =>
             options.UseMySql(Configuration.GetConnectionString("DefaultConnection")));
 
@@ -76,7 +77,16 @@ namespace Picture_Catalog
                             Configuration.GetConnectionString("DefaultConnection")
                         ));
             */
-            services.AddMvc();
+
+            //Raakadatan kuljettamiseen POST-komennon bodyssa tarvitaan oma inputformatteri.
+            services.AddMvc(
+                
+                o =>
+                {
+                    o.InputFormatters.Add(new RawRequestBodyFormatter());
+                }
+                
+            );
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

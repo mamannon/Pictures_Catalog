@@ -19,19 +19,26 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 using System.Xml.Serialization;
+using CloudinaryDotNet.Actions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.NewtonsoftJson;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 
 namespace Picture_Catalog.Controllers
 {
 
-    public class PictureServerController : ControllerBase
+    //public class PictureServerController : ControllerBase
+    public class PictureServerController : Controller
     {
 
         private readonly PictureDatabase _context;
         private static List<TempLog> _currentUsers = new List<TempLog>();
+        private static List<string> _publicIds = new List<string>();
 
         public class LogIn
         {
@@ -575,13 +582,70 @@ namespace Picture_Catalog.Controllers
         }
 
         /// <summary>
+        /// Tällä funktiolla tallennetaan yhden kuvan kuvadata Cloudinaryyn.
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+#if USESWAGGER
+        [HttpPost("SaveDat")]
+        [Route("api/Pictures/SaveData/{id:int:min(1)}")]
+#else
+        [HttpPost]
+        [Route("api/Pictures/SaveData/{id:int:min(1)}")]
+        [Produces("application/json")]
+#endif
+        public JsonResult SaveData(int id, [FromBody] byte[] obj)
+        {
+            try
+            {
+                int tempUser = id;
+
+                // Katsotaan, onko käyttäjä olemassa.
+                TempLog user = null;
+                user = _currentUsers.Find(q => q.mTemporaryID == tempUser);
+                if (user == null)
+                {
+                    Response.StatusCode = 403;
+                    return null;
+                }
+
+                //Käyttäjä on olemassa, yritetään ladata kuva Cloudinaryyn.
+                string publicId = CloudinaryController.UploadToCloudinary(obj, user.mUser);
+                if (publicId != null)
+                {
+
+                    //Lataus onnistui. Palautetaan kuvan url-osoite frontendiin ja 
+                    //otetaan publicId väliaikaiseen talteen.
+                    Picture pic = new Picture()
+                    {
+                        cPictureSets = null,
+                        mLegend = null,
+                        mPictureSet = null,
+                        mURL = publicId,
+                        mUserId = 0,
+                        PictureId = 0
+                    };
+                    _publicIds.Add(publicId);
+                    return Json(pic);
+                }
+                Response.StatusCode = 500;
+                return null;
+            } 
+            catch (Exception e)
+            {
+                Response.StatusCode = 500;
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Tällä funktiolla tallennetaan yksi kuva tietokantaan kyseisen käyttäjän tilille haluttuun 
         /// kuvasettiin. Jos haluttua kuvasettiä ei vielä ole olemassa, se luodaan.
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
 #if USESWAGGER
-        [HttpPost("Save")]
+        [HttpPost("SavePic")]
 #else
         [HttpPost]
         [Route("api/Pictures/SavePicture")]
@@ -620,15 +684,42 @@ namespace Picture_Catalog.Controllers
                     return null;
                 }
                 pic.mUserId = userId;
+
+                //Tarkastetaan, löytyykö kuva tilapäislistasta _publicIds.
+                int index = _publicIds.IndexOf(pic.mURL);
+                if (index != -1)
+                {
+
+                    //Poistetaan kyseinen indeksi tilapäislistasta.
+                    _publicIds.RemoveAt(index);
+
+                    //Haetaan kuvan url Cloudinarysta.
+                    GetResourceResult temp = CloudinaryController.FindFromCloudinary(pic.mURL);
+                    if (temp != null)
+                    {
+
+                        //Löyty Cloudinarysta
+                        pic.mURL = temp.Url;
+                        pic.mPublicId = temp.PublicId;
+                    }
+                    else
+                    {
+                        pic.mPublicId = null;
+                    }
+                }
+                else
+                {
+                    pic.mPublicId = null;
+                }
                 int picSetId = 0;
 
                 //Tallennetaan uusi kuva tietokantaan.    
                 _context.dbPictures.Add(pic);
                 _context.SaveChanges();
+
+                //Jos halutun nimistä kuvasettiä ei ole olemassa, se pitää luoda.
                 if (picSet == null)
                 {
-
-                    //Jos halutun nimistä kuvasettiä ei ole olemassa, se pitää luoda.
                     picSet = new PictureSet()
                     {
                         mPictureSet = picSetName,
@@ -646,12 +737,14 @@ namespace Picture_Catalog.Controllers
                     picSetId = picSet.PictureSetId;
                 }
 
-                //Kuvan yhteys kuvasettiin pitää kirjata referenssitaulukkoon.
+                //Kuvan yhteys kuvasettiin pitää kirjata referenssitauluun.
                 PictureSetPicture psp = new PictureSetPicture()
                 {
                     mPictureSetId = picSetId,
                     mPictureId = pic.PictureId
                 };
+                _context.dbPictureSetPictures.Add(psp);
+                _context.SaveChanges();
 
                 //Luetaan tietokannasta kaikki kuvasetin kuvat listaan. 
                 return GetPictures(picSet);
@@ -723,7 +816,7 @@ namespace Picture_Catalog.Controllers
 
                     //Katsotaan, onko meillä poistettavaksi haluttua kuvaa referenssitaulussa.
                     PictureSetPicture p = _context.dbPictureSetPictures.FirstOrDefault(
-                        q => q.mPictureId == pictureId);
+                        q => (q.mPictureId == pictureId && q.mPictureSetId == picSet.PictureSetId));
                     if (p != null)
                     {
 
@@ -736,13 +829,22 @@ namespace Picture_Catalog.Controllers
                             e => e.mPictureId == pictureId).ToList();
 
                         //Jos ei, tuhotaan kuva.
-                        if (temp.Count == 0) _context.dbPictures.Remove(pic);
+                        if (temp.Count == 0)
+                        {
+                            if (pic.mPublicId != null)
+                            {
+
+                                //Jos kuva on Cloudinaryssa, tuhotaan se sieltäkin.
+                                CloudinaryController.RemoveFromCloudinary(pic.mPublicId);
+                            }
+                            _context.dbPictures.Remove(pic);
+                        }
                     }
 
                 }
                 _context.SaveChanges();
 
-                //Luetaan tietokannasta kaikki kuvasetin kuvat, pois lukien äsken poistettu, listaan
+                //Luetaan tietokannasta kaikki kuvasetin kuvat, pois lukien äsken poistettu, listaan.
                 return GetPictures(picSet);
             }
             catch (Exception e)
@@ -800,6 +902,12 @@ namespace Picture_Catalog.Controllers
                 _context.SaveChanges();
 
                 // Lopuksi poistetaan itse kuva kuvataulukosta.
+                if (pic.mPublicId != null)
+                {
+
+                    //Jos kuva on Cloudinaryssa, tuhotaan se sieltäkin.
+                    CloudinaryController.RemoveFromCloudinary(pic.mPublicId);
+                }
                 _context.dbPictures.Remove(pic);
                 _context.SaveChanges();
 

@@ -15,11 +15,11 @@ export default class Navi extends React.Component {
         let clickedButton = event.target.getAttribute("data-id");//klikattu main nappi
         this.props.getClickedButtonId(clickedButton);
     }
-
+/*
     openOverlay = () => {
         this.props.overlay(1);
     }
-
+*/
     
     render() {
         

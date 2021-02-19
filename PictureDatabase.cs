@@ -40,7 +40,7 @@ namespace Picture_Catalog
 
     public class Picture
     {
-
+        public string mPublicId { get; set; }
         public int mUserId { get; set; }
         public int PictureId { get; set; }
         public string mPictureSet { get; set; }

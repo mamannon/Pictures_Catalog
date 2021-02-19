@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@material-ui/core": "^4.11.3",
+    "react-dropzone": "^11.3.1"
+  }
+}
