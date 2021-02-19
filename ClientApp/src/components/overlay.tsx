@@ -10,7 +10,7 @@ export default class Overlay extends React.Component {
             content: this.props.contentId
         }
     }
-
+    /*
     onClick = (event) => {
         event.preventDefault();
         let name = event.target.parentElement.firstChild.value;//vaatii, että input kenttä on ensimmäinen tagi formin sisällä. Kökkö toteutus. Pitää miettiä parempi tapa
@@ -76,4 +76,5 @@ export default class Overlay extends React.Component {
             )
         }
     }
+    */
 }

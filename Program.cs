@@ -24,8 +24,13 @@ namespace Picture_Catalog
                 var services = scope.ServiceProvider;
                 try
                 {
+
+                    //Luodaan tietokantakonteksti.
                     var context = services.GetRequiredService<PictureDatabase>();
                     PictureServerController.Initialize(context);
+
+                    //Luodaan Cloudinarykonteksti.
+                    CloudinaryController.Initialize();
                 }
                 catch(Exception ex)
                 {
@@ -47,31 +52,4 @@ namespace Picture_Catalog
 }
 
 
-/*
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
-namespace Picture_Catalog
-{
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            CreateHostBuilder(args).Build().Run();
-        }
-
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                });
-    }
-}
-*/

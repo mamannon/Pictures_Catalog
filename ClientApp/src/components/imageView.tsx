@@ -6,6 +6,7 @@ import { XCircle, Plus } from 'react-bootstrap-icons';
 import dataholding from './Dataholding';
 import Login from './Login';
 import { Session } from "inspector";
+import { Link } from "react-router-dom";
 
 export default class ImageView extends React.Component {
 
@@ -17,19 +18,28 @@ export default class ImageView extends React.Component {
         }
     }
 
-    //klikattu jotain thumbnailia, jotta saadaan iso kuva kyseisestä thumbnailista
+    /**
+     * Klikattu jotain thumbnailia, jotta saadaan iso kuva kyseisestä thumbnailista.
+     * @param event
+     */
     onClick1 = (event) => {
         dataholding.setClickedNaviButton(false);
         this.setState({ clickedThumbnail: event.target.id });
     }
 
-    //klikattu isoa kuvaa, jotta palattaisiin thumbnail näkymään
+    /**
+     * Klikattu isoa kuvaa, jotta palattaisiin thumbnail näkymään.
+     * @param event
+     */
     onClick2 = (event) => {
         dataholding.setClickedNaviButton(true);
         this.setState({ clickedThumbnail: 0 });
     }
 
-    //klikattu ison kuvan vasenta laitaa, jotta siirryttäisiin aiempaan kuvaan
+    /**
+     * Klikattu ison kuvan vasenta laitaa, jotta siirryttäisiin aiempaan kuvaan.
+     * @param event
+     */
     onClick3 = (event) => {
         if (parseInt(this.state.clickedThumbnail) > 0) {
             dataholding.setClickedNaviButton(false);
@@ -38,7 +48,10 @@ export default class ImageView extends React.Component {
         }
     }
 
-    //klikattu ison kuvan oikeaa laitaa, jotta siirryttäisiin seuraavaan kuvaan
+    /**
+     * Klikattu ison kuvan oikeaa laitaa, jotta siirryttäisiin seuraavaan kuvaan.
+     * @param event
+     */
     onClick4 = (event) => {
         let temp = parseInt(this.state.clickedThumbnail) + 1;
         if (temp < this.props.imagesByButtonClicked.length) {
@@ -54,7 +67,7 @@ export default class ImageView extends React.Component {
         let removeImg = event.currentTarget.id;
 
         //Kysytään käyttäjältä varmistus, että hän todella haluaa poistaa kuvan kuvasetistä.
-        if (window.confirm("Poistetaanko kuva?")) {
+        if (window.confirm("Do you want to remove this picture?")) {
             console.log("Removing image " + removeImg);
             let picture = {
                 PID: removeImg,
@@ -64,11 +77,12 @@ export default class ImageView extends React.Component {
             this.props.removePicture(picture);
         }
     }
-
+/*
     add = (event) => {
         alert("Lisää kuva");
+ //       Link("/newpic");
     }
-
+*/
     render() {
         let storageusername = sessionStorage.getItem("user");
         if (this.props.imagesByButtonClicked.length > 0 && storageusername !== null) {
@@ -78,14 +92,33 @@ export default class ImageView extends React.Component {
             if (dataholding.getClickedNaviButton() === true) {
 
                 //Täällä luodaan thumbnail näkymä useilla pikkukuvilla
-                images = this.props.imagesByButtonClicked.map((picture) => {
+                images = this.props.imagesByButtonClicked.map((picture, index) => {
                     return (
-                        <div className="imageDiv" onClick={this.onClick1} >
-                            <Image className="thumbnail" src={picture.mURL} width="198" height="198" gravity="center" crop="thumb" />
-                            <XCircle size={24} className="deleteImage" onClick={(e) => { e.stopPropagation(); this.remove(e) }} id={picture.pictureId} />
+                        <div className="imageDiv" onClick={this.onClick1} key={picture.pictureId}>
+                            <Image className="thumbnail"
+                                src={picture.mURL}
+                                width="198"
+                                height="198"
+                                gravity="center"
+                                crop="thumb"
+                                id={index} />
+                            <XCircle size={24}
+                                className="deleteImage"
+                                onClick={(e) => { e.stopPropagation(); this.remove(e) }}
+                                id={picture.pictureId} />
                         </div>
                     )
                 });
+
+                //Lisätään perään thumbnail, jossa linkki uuden kuvan lisäämiseen
+                images.push(
+                    <div className="imageDiv" key="0">
+                        <Link to="/newpic" aria-orientation="horizontal">
+                            <Plus size={64} />
+                        </Link>
+                    </div>
+                );
+
             } else {
 
                 //Täällä luodaan käyttäjän klikkaamasta thumbnailista yksi iso näkymän täyttävä kuva
@@ -124,19 +157,12 @@ export default class ImageView extends React.Component {
             return (
                 <div className="main_page">
                     {images}
-
-                    <div className="imageDiv addImage" onClick={this.add}>
-                        <Plus size={64} />
-                    </div>
-
                 </div>
             )
         } else if (storageusername !== null) {
             return (
                 <div className="main_page">
-                    <div className="imageDiv addImage" onClick={this.add}>
-                        <Plus size={64} />
-                    </div>
+                    <p>Tähän jotain sisältöä!</p>
                 </div>
             )
         } else {

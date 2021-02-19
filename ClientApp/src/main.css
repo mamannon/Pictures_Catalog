@@ -117,3 +117,12 @@ legendStyle {
     margin:auto;
     margin-top:5%;
 }
+
+.dropzone {
+    width: 100%;
+    height: 200px;
+    border: 1px solid black;
+    background-color: #7373;
+    align-self: center;
+}
+    
