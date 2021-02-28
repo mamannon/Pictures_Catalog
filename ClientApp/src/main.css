@@ -3,7 +3,7 @@
     top:0;
     left:0;
     height:100%;
-    width:10%;
+    width:15%;
     background-color:#17181B;
     text-align:center;
     border-right:1px solid #202226;
@@ -15,10 +15,34 @@
     text-align:center;
     margin:0;
     color:rgba(255,255,255,0.3);
-    line-height:45px;
+    line-height:35px;
     background:none;
     border:none;
     border-bottom:1px solid rgba(255,255,255,0.1);
+}
+
+.buttonstyle_red {
+    width: 96%;
+    text-align: left;
+    margin: 0;
+    line-height: 15px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    font-style: italic;
+    color: rgba(255, 64, 0, 0.6);
+}
+
+.buttonstyle_green {
+    width: 96%;
+    text-align: left;
+    margin: 0;
+    line-height: 15px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    font-style: italic;
+    color: rgba(64, 255, 0, 0.6);
 }
 
 .NaviSubButtons {
@@ -35,7 +59,22 @@
     width: 198px;
     height: 198px;
     margin: 2px;
-    display:flex;
+    display: flex;
+    position: relative;
+}
+
+.thumbnail {
+    max-width: 198px;
+    max-height: 198px;
+    width: auto;
+    height: auto;
+    border: 0;
+    position: absolute;
+    margin: auto;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
 }
 
 .addImage {
@@ -59,13 +98,12 @@
 
 .main_page {
     position:fixed;
-    left:10%;
-    width:90%;
+    left:15%;
+    width:85%;
     height:100%;
 }
 
-
-.deleteImage {
+.deleteIcon {
     z-index: 10;
     position: fixed;
     margin: 5px 2px;
@@ -75,21 +113,22 @@
     opacity: 0.5;
 }
 
-.deleteImage:hover {
+.editIcon {
+    z-index: 10;
+    position: fixed;
+    margin: 5px 30px;
+    background-color: #fff;
+    border-radius: 15px;
+    cursor: pointer;
+    opacity: 0.5;
+}
+
+.deleteIcon:hover {
     opacity:1;
 }
 
-.overlay {
-    z-index:20;
-    background-color:#17181B;
-    padding:20px;
-    position:absolute;
-    left:50%;
-    top:50%;
-    margin-left:-150px;
-    margin-top:-10%;
-    color:rgba(255,255,255,0.3);
-    width:300px;
+.editIcon:hover {
+    opacity: 1;
 }
 
 .overlay input {
@@ -98,7 +137,10 @@
 }
 
 .columnStyle {
-    background-color:grey;
+    margin: 0;
+    color: rgba(215,215,215,0.3);
+    background-color: #17181B;
+    border: 1px solid rgba(215,215,215,0.1);
 }
 
 legendStyle {
@@ -116,6 +158,16 @@ legendStyle {
     width:50%;
     margin:auto;
     margin-top:5%;
+}
+
+.form2 {
+    width: 80%;
+    margin: auto;
+}
+
+.form3 {
+    width: 100%;
+    margin: auto;
 }
 
 .dropzone {

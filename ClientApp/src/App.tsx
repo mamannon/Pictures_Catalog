@@ -4,7 +4,6 @@ import { Button, Table } from 'react-bootstrap';
 import { Switch, Route, Redirect } from 'react-router-dom';
 import Navi from './components/Navi';
 import Images from './components/imageView';
-//import Overlay from './components/overlay';
 import dataholding from './components/Dataholding';
 import NewPic from "./components/Newpic";
 import "./App.css";
@@ -20,8 +19,7 @@ class App extends React.Component {
             images: [],
             imageSet: [],
             chosenImageSet: [],
-            overlayState: 0//0 = ei n‰ytet‰ overlayta, 1 = lis‰‰ kuvasetti, 2 = lis‰‰ kuva, 3 = poista kuva
-        } 
+        }
     }
 
     /**
@@ -42,7 +40,7 @@ class App extends React.Component {
                         sessionStorage.setItem("password", data.mPassword);
                         sessionStorage.setItem("name", data.mName);
                         sessionStorage.setItem("user", data.mUser);
-                        this.overlayVisibility(0);
+                        this.getPicturesBySet();
                     } else {
                         window.alert("Wrong username or password. Please try again.");
                     }
@@ -50,7 +48,7 @@ class App extends React.Component {
                     window.alert("Error parsing JSON:" + error);
                 })
             } else {
-                window.alert("Server responded with status:" + response.status);
+                window.alert("Wrong username or password. Please try again.");
             }
         }).catch(error => {
             window.alert("Server responded with error:" + error);
@@ -75,7 +73,7 @@ class App extends React.Component {
                         sessionStorage.setItem("password", data);
                         sessionStorage.setItem("name", subs.mName);
                         sessionStorage.setItem("user", subs.mUser);
-                        this.overlayVisibility(0);
+                        this.getPicturesBySet();
                     } else {
                         window.alert("You gave a username which is either already in use or you typed ##. Please give a new username.")
                     }
@@ -83,7 +81,7 @@ class App extends React.Component {
                     window.alert("Error parsing JSON:" + error);
                 })
             } else {
-                window.alert("Server responded with status:" + response.status);
+                window.alert("You gave a username which is either already in use or you typed ##.Please give a new username.");
             }
         }).catch(error => {
             window.alert("Server responded with error:" + error);
@@ -106,13 +104,7 @@ class App extends React.Component {
 
         fetch("/api/Pictures/Logout", request).then(response => {
             if (response.ok) {
-                response.json().then(data => {
-                    sessionStorage.removeItem("user");
-                    sessionStorage.removeItem("password");
-                    sessionStorage.removeItem("name");
-                }).catch(error => {
-                    window.alert("Error parsing JSON:" + error);
-                })
+ //               window.alert("You are logged out of Picture Catalog.");
             } else {
                 window.alert("Server responded with status:" + response.status);
             }
@@ -131,14 +123,14 @@ class App extends React.Component {
             headers: { "Content-type": "application/json" },
             body: sessionStorage.getItem("password")
         };
-        
+
         fetch("/api/Pictures/GetSets", request).then(response => {
             if (response.ok) {
                 response.json().then(data => {
                     console.log(data);
                     let temp = [];
                     for (let i = 0; i < data.length; i++) {
-                        temp.push([data[i].mPictureSet, data[i].mPSID]);
+                        temp.push([data[i].mPictureSet, data[i].mPSID, data[i].mName, data[i].mAccessible]);
                     }
                     this.setState({ imageSet: temp });
                 }).catch(error => {
@@ -176,7 +168,7 @@ class App extends React.Component {
                     if (data.length > 0) {
                         this.setState({ pictureSet: data[0].mPictureSet });
                     } else {
-                        this.setState({ pictureSet: "" });
+                        window.alert("Couldn't get any pictures. This pictureset is either empty or you are not allowed to see pictures. If you are not allowed, the owner of the pictures may allow you to see the pictures at later time.")
                     }
                 }).catch(error => {
                     window.alert("Error parsing JSON:" + error);
@@ -234,7 +226,7 @@ class App extends React.Component {
                     }
                 }).catch(error => {
                     window.alert("Error parsing JSON: " + error);
-                });  
+                });
             } else {
                 window.alert("Server responded with status: " + response.status);
             }
@@ -329,11 +321,6 @@ class App extends React.Component {
         });
     }
 
-    overlayVisibility = (data) => {
-        this.setState({ overlayState: data });
-        if (data === 0) this.getPicturesBySet();
-    }
-
     /**
      * T‰ll‰ tuhotaan kuva tietokannasta ja poistetaan se kaikista kuvaseteist‰. Kuvaa etsit‰‰n
      * tietokannasta ainoastaan annetun URL-osoitteen perusteella.
@@ -412,7 +399,7 @@ class App extends React.Component {
                     console.log(data);
                     let temp = new Array();
                     for (let i = 0; i < data.length; i++) {
-                        temp.push([data[i].mPictureSet, data[i].mPSID]);
+                        temp.push([data[i].mPictureSet, data[i].mPSID, data[i].mName, data[i].mAccessible]);
                     }
                     this.setState({ imageSet: temp });
                     this.buttonState(temp.find(q => q.mPictureSet == pictureSet.mPicturesSet).mPSID);
@@ -452,7 +439,7 @@ class App extends React.Component {
                     console.log(data);
                     let temp = new Array();
                     for (let i = 0; i < data.length; i++) {
-                        temp.push([data[i].mPictureSet, data[i].mPSID]);
+                        temp.push([data[i].mPictureSet, data[i].mPSID, data[i].mName, data[i].mAccessible]);
                     }
                     this.setState({ imageSet: temp });
                     if (temp.length > 0)
@@ -536,9 +523,18 @@ class App extends React.Component {
         });
     }
 
-    overlayVisibility = (data) => {
-        this.setState({ overlayState: data });
-        if (data === 0) this.getPicturesBySet();
+    logout = () => {
+        this.logoutBackend();
+        sessionStorage.setItem("user", "");
+        sessionStorage.setItem("name", "");
+        sessionStorage.setItem("password", "");
+        let state = {
+            pictureSet: "",
+            images: [],
+            imageSet: [],
+            chosenImageSet: [],
+        }
+        this.setState(state);
     }
 
     componentDidMount() {
@@ -548,18 +544,13 @@ class App extends React.Component {
     
 
     render() {
- //       let overlay;
- //       if (this.state.overlayState > 0) overlay = <Overlay contentId={this.state.overlayState}
- //               closeOverlay={this.overlayVisibility} />;
-        //T‰m‰ routen divin sis‰‰n alimmaiseksi:  {overlay}
-
         return (
             <div className="App">
                 <Switch>
                     <Route exact path="/" render={() => (
                         <div>
                             <Navi getClickedButtonId={this.buttonState} imageSets={this.state.imageSet}
-                                overlay={this.overlayVisibility} />
+                                logout={this.logout}/>
                             <Images imagesByButtonClicked={this.state.chosenImageSet} login={this.loginBackend}
                                 subscribe={this.subscribeBackend} removePicture={this.removePicture}
                                 currentPictureSet={this.state.pictureSet} />
@@ -568,6 +559,8 @@ class App extends React.Component {
                     )} />
                     <Route path="/newpic" render={() => (
                         <div>
+                            <Navi getClickedButtonId={this.buttonState} imageSets={this.state.imageSet}
+                                logout={this.logout} />
                             <NewPic currentPictureSet={this.state.pictureSet} saveData={this.saveData} savePicture={this.savePicture} />
                         </div>
                     )}/>

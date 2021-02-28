@@ -43,7 +43,6 @@
     <None Remove="ClientApp\src\components\Login.tsx" />
     <None Remove="ClientApp\src\components\Navi.tsx" />
     <None Remove="ClientApp\src\components\Newpic.tsx" />
-    <None Remove="ClientApp\src\components\overlay.tsx" />
   </ItemGroup>
 
   <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules') ">
