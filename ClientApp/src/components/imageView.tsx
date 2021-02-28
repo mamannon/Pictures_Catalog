@@ -2,7 +2,7 @@
 import ".././main.css";
 import * as rs from 'react-bootstrap';
 import { Image } from 'cloudinary-react';
-import { XCircle, Plus } from 'react-bootstrap-icons';
+import { XCircle, Plus, ChevronLeft, ChevronRight, InfoCircle } from 'react-bootstrap-icons';
 import dataholding from './Dataholding';
 import Login from './Login';
 import { Session } from "inspector";
@@ -77,15 +77,19 @@ export default class ImageView extends React.Component {
             this.props.removePicture(picture);
         }
     }
-/*
-    add = (event) => {
-        alert("Lisää kuva");
- //       Link("/newpic");
+
+
+    edit = (event) => {
+        let koe = 1;
     }
-*/
+
+
     render() {
         let storageusername = sessionStorage.getItem("user");
-        if (this.props.imagesByButtonClicked.length > 0 && storageusername !== null) {
+
+        //Jos käyttäjä on klikannut katseltavakseen jonkun kuvasetin.
+        if (this.props.imagesByButtonClicked.length > 0 &&
+            storageusername !== null && storageusername.length > 0) {
             let images = [];
 
             //jos clickedNaviButton on true, käyttäjä ei ole klikannut yhtään thumbnailia
@@ -94,19 +98,23 @@ export default class ImageView extends React.Component {
                 //Täällä luodaan thumbnail näkymä useilla pikkukuvilla
                 images = this.props.imagesByButtonClicked.map((picture, index) => {
                     return (
-                        <div className="imageDiv" onClick={this.onClick1} key={picture.pictureId}>
-                            <Image className="thumbnail"
-                                src={picture.mURL}
-                                width="198"
-                                height="198"
-                                gravity="center"
-                                crop="thumb"
-                                id={index} />
-                            <XCircle size={24}
-                                className="deleteImage"
-                                onClick={(e) => { e.stopPropagation(); this.remove(e) }}
-                                id={picture.pictureId} />
-                        </div>
+                        <span className="imageDiv"
+                            onClick={this.onClick1}
+                            key={picture.pictureId}>
+                                <Image className="thumbnail"
+                                    src={picture.mURL}
+                                    gravity="center"
+                                    crop="thumb"
+                                    id={index} />
+                                <XCircle size={24}
+                                    className="deleteIcon"
+                                    onClick={(e) => { e.stopPropagation(); this.remove(e) }}
+                                    id={picture.pictureId} />
+                                <InfoCircle size={24}
+                                    className="editIcon"
+                                    onClick={(e) => { e.stopPropagation(); this.edit(e) }}
+                                    id={picture.pictureId} />
+                        </span>
                     )
                 });
 
@@ -121,7 +129,7 @@ export default class ImageView extends React.Component {
 
             } else {
 
-                //Täällä luodaan käyttäjän klikkaamasta thumbnailista yksi iso näkymän täyttävä kuva
+                //Täällä luodaan käyttäjän klikkaamasta thumbnailista yksi iso näkymän täyttävä kuva.
                 let index = parseInt(this.state.clickedThumbnail);
                 let picture = this.props.imagesByButtonClicked[index];
                 images.push(
@@ -129,7 +137,9 @@ export default class ImageView extends React.Component {
                         <table style={{ width: "100%" }}>
                             <tbody>
                                 <tr>
-                                    <td style={{ width: "10px" }} onClick={this.onClick3} className="columnStyle"></td>
+                                    <td style={{ width: "10px" }} onClick={this.onClick3} className="columnStyle">
+                                        <ChevronLeft size={16} color="#0040ff"/>
+                                    </td>
                                     <td>
                                         <table style={{ width: "100%" }} onClick={this.onClick2}>
                                             <tbody>
@@ -140,13 +150,15 @@ export default class ImageView extends React.Component {
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        <p className="legendStyle">{picture.mLegend}</p>
+                                                        <div className="legendStyle">{picture.mLegend}</div>
                                                     </td>
                                                 </tr>
                                             </tbody>
                                         </table>
                                     </td>
-                                    <td style={{ width: "10px" }} onClick={this.onClick4} className="columnStyle"></td>
+                                    <td style={{ width: "10px" }} onClick={this.onClick4} className="columnStyle">
+                                        <ChevronRight size={16} color="#0040ff"/>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -159,12 +171,16 @@ export default class ImageView extends React.Component {
                     {images}
                 </div>
             )
-        } else if (storageusername !== null) {
+
+        //Jos mitään kuvasettiä ei ole valittu.
+        } else if (storageusername !== null && storageusername.length > 0) {
             return (
                 <div className="main_page">
-                    <p>Tähän jotain sisältöä!</p>
+                    <p>TODO: add some content here!</p>
                 </div>
             )
+
+        //Jos käyttäjä ei ole kirjautunut palveluun.
         } else {
             return (
                 <div className="main_page">
@@ -175,5 +191,6 @@ export default class ImageView extends React.Component {
                 </div>
             )
         }
+
     }
 }

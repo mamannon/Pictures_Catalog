@@ -32,10 +32,11 @@ class Newpic extends React.Component {
     /**
      * Käyttäjä haluaa tallentaa tietokantaan kuvan. 
      * */
-    savePicture = () => {
+    onSubmit = (event) => {
+        event.preventDefault();
 
         //Ensin varmistamme, että käyttäjällä on kuva valittuna.
-        if (this.state.file.length !== 0) {
+        if (this.state.file.length > 0) {
 
             //Sitten tallennamme kuvan tietokantaan.
             let picture = {
@@ -81,7 +82,7 @@ class Newpic extends React.Component {
     onChangeLegend = (event) => {
         let state = {
             file: this.state.file,
-            legend: event.target.legend,
+            legend: event.target.value,
             url: this.state.url
         };
         this.setState(state);
@@ -95,7 +96,7 @@ class Newpic extends React.Component {
         let state = {
             file: this.state.file,
             legend: this.state.legend,
-            url: event.target.url
+            url: event.target.value
         };
         this.setState(state);
     }
@@ -113,9 +114,7 @@ class Newpic extends React.Component {
         this.setState(state);
         this.props.history.push("/");
     }
-    /*
-
-    */
+    
     render() {
         
         const file = this.state.file.map(file => (
@@ -129,13 +128,13 @@ class Newpic extends React.Component {
         //const legend = this.state.legend.replace('a', 'b');
         
         return (
-            <div className="newpic">
+            <div className="main_page">
                 <Dropzone
                     onDrop={this.dropping}
                     accept="image/jpeg, image/jpg, image/png, image/gif"
                     multiple={false}>
                     {({ getRootProps, getInputProps }) => (
-                        <section className="container">
+                        <section className="form2">
                             <div {...getRootProps({ className: "dropzone" })}>
                                 <input {...getInputProps()} />
                                 <p>To upload a picture drag 'n' drop an image file here or click me...</p>
@@ -144,8 +143,7 @@ class Newpic extends React.Component {
                         </section>
                     )}
                 </Dropzone>
-                <br/>
-                <Form onSubmit={this.savePicture}>
+                <Form className="form2" onSubmit={this.onSubmit}>
                     <Form.Field>
                         <label>...or if you want to point some picture in internet, write its url-address below:</label>
                         <input type="text"
@@ -156,6 +154,7 @@ class Newpic extends React.Component {
                     <Form.Field>
                         <label>Write below a story about your picture:</label>
                         <TextField variant="outlined"
+                            className="form3"
                             multiline
                             name="legend"
                             onChange={this.onChangeLegend}

@@ -248,10 +248,7 @@ namespace Picture_Catalog.Controllers
                     Response.StatusCode = 403;
                     return null;
                 }
-
                 return GetButtons(_context.dbUsers.Single(e => e.mUser==usr.mUser));
-
-//                return null;
             }
             catch (Exception e)
             {
@@ -411,7 +408,11 @@ namespace Picture_Catalog.Controllers
                             }
 
                             // Katsotaan, onko kuvasetti olemassa.
-                            if (null == _context.dbPictureSets.Find(id.mPSID)) return null;
+                            if (null == _context.dbPictureSets.Find(id.mPSID))
+                            {
+                                Response.StatusCode = 422;
+                                return null;
+                            }
 
                             // Katsotaan, onko käyttäjällä oikeutta katsella tätä kuvasettiä.
                             PictureSet ps = _context.dbPictureSets.Single(c => c.PictureSetId == id.mPSID);
@@ -427,8 +428,12 @@ namespace Picture_Catalog.Controllers
                                 int applicantUserId = _context.dbUsers.Single(g => g.mUser == user.mUser).UserId;
                                 int ownerUserId = _context.dbPictureSets.Single(g => g.PictureSetId == id.mPSID).mUserId;
                                 if (null != _context.dbAppliedRights.FirstOrDefault(
-                                    e => e.mApplicantUserId==applicantUserId && e.mOwnerUserId==ownerUserId
-                                    && e.mPictureSetId==id.mPSID)) return null;
+                                    e => e.mApplicantUserId == applicantUserId && e.mOwnerUserId == ownerUserId
+                                    && e.mPictureSetId == id.mPSID))
+                                {
+                                    List<Picture> e = new List<Picture>();
+                                    return e; 
+                                }
 
                                 //Ei ole tehnyt, joten tehdään nyt
                                 AppliedRight ask = new AppliedRight()
@@ -441,7 +446,8 @@ namespace Picture_Catalog.Controllers
                                 _context.SaveChanges();
 
                                 //Sitten poistutaan tästä funktiosta.
-                                return null;
+                                List<Picture> p = new List<Picture>();
+                                return p;
                             }
 
                             //Luetaan tietokannasta kaikki kuvasetin kuvat listaan. 
@@ -1046,8 +1052,8 @@ namespace Picture_Catalog.Controllers
             foreach (var user in _context.dbUsers.ToList())
             {
 
-                    //Tämä rivi lisää nappuloiden listaan käyttäjän ylänappulan
-                    buttons.Add(new Button() { mName = user.mName, mPSID = 0 });
+                    //Tämä rivi lisää nappuloiden listaan käyttäjän ylänappulan.
+                    buttons.Add(new Button() { mName = user.mName, mPSID = 0, mPictureSet = user.mUser });
 
                     List<PictureSet> psets = _context.dbPictureSets.Where(q => q.mUserId == user.UserId).ToList();
                     foreach (var pset in psets.ToList())
@@ -1061,10 +1067,14 @@ namespace Picture_Catalog.Controllers
                             && e.mPictureSet == pset.mPictureSet).Count();
                         if (count < 1)
                         {
+
+                            //Tätä kuvasettiä ei ole annettu tämän käyttäjän katseltavaksi.
                             button.mAccessible = 0;
                         }
                         else
                         {
+
+                            //Tällä käyttäjällä on käyttöoikeus tähän kuvasettiin.
                             button.mAccessible = 1;
                         }
 

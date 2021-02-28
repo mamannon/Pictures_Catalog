@@ -32,8 +32,6 @@ export default class Login extends React.Component {
 				alert("Username or password cant be empty");
 				return;
             }
-			console.log(user.username + ": is logging in!");
-//			sessionStorage.setItem("username", user.username);
 			this.props.login(user);
 		} else {
 			user = {
@@ -45,8 +43,6 @@ export default class Login extends React.Component {
 				alert("Username and name must be atleast 3 and password 8 characters long.");
 				return;
 			}
-			console.log(user.username + ": is registering!");
-//			sessionStorage.setItem("username", user.username);
 			this.props.subscribe(user);
         }
 		
