@@ -7,7 +7,7 @@ import Images from './components/imageView';
 import dataholding from './components/Dataholding';
 import NewPic from "./components/Newpic";
 import "./App.css";
-
+import { JwModal } from './components/Modal';
 
 
 class App extends React.Component {
@@ -19,6 +19,7 @@ class App extends React.Component {
             images: [],
             imageSet: [],
             chosenImageSet: [],
+            bodyText: ""
         }
     }
 
@@ -164,11 +165,12 @@ class App extends React.Component {
             if (response.ok) {
                 response.json().then(data => {
                     console.log(data);
-                    this.setState({ chosenImageSet: data });
                     if (data.length > 0) {
+                        this.setState({ chosenImageSet: data });
                         this.setState({ pictureSet: data[0].mPictureSet });
                     } else {
                         window.alert("Couldn't get any pictures. This pictureset is either empty or you are not allowed to see pictures. If you are not allowed, the owner of the pictures may allow you to see the pictures at later time.")
+                        this.setState({ chosenImageSet: [] });
                     }
                 }).catch(error => {
                     window.alert("Error parsing JSON:" + error);
@@ -362,29 +364,35 @@ class App extends React.Component {
      * @param aData Jos mukaan sisällytetään käyttöoikeuksien muutoksia, ne sijoitetaan tähän objektiin
      */
     addPictureSet = (psName, pData, aData) => {
+
         let pictures = [];
+
+        if (pData !== null)
         for (let i = 0; i < pData.length; i++) {
             pictures.push({
                 PictureId: parseInt(pData[i].pictureId = pData[i].pictureId || 0),
                 mURL: pData[i].URL,
                 mLegend: pData[i].legend
             });
-        }
+            }
+
         let allowedUsers = [];
+
+        if (aData !== null)
         for (let i = 0; i < aData.length; i++) {
             allowedUsers.push({
                 mAllowedUser: aData[i].allowedUser,
                 mPictureSet: aData[i].picSet
             });
         }
-        let pictureSet = {
-            mPicturesSet: psName,
+        let pictureSet1 = {
+            mPictureSet: psName,
             cPictures: pictures,
             cAllowedUsers: allowedUsers
         };
         let temp = {
             mKey: parseInt(sessionStorage.getItem("password")),
-            mPictureSet: pictureSet
+            cPictureSet: pictureSet1
         };
 
         let request = {
@@ -397,12 +405,20 @@ class App extends React.Component {
             if (response.ok) {
                 response.json().then(data => {
                     console.log(data);
-                    let temp = new Array();
+                    let temp = [];
                     for (let i = 0; i < data.length; i++) {
                         temp.push([data[i].mPictureSet, data[i].mPSID, data[i].mName, data[i].mAccessible]);
                     }
-                    this.setState({ imageSet: temp });
-                    this.buttonState(temp.find(q => q.mPictureSet == pictureSet.mPicturesSet).mPSID);
+                    let state = {
+                        pictureSet: pictureSet1.mPictureSet,
+                        images: this.state.images,
+                        imageSet: temp,
+                        chosenImageSet: this.state.chosenImageSet,
+                        bodyText: this.state.bodyText
+                    };
+                    this.setState(state);
+                    const picset = (q) => (q[0] === pictureSet1.mPictureSet && sessionStorage.getItem("name") === q[2]);
+                    this.buttonState(temp[temp.findIndex(picset)][1]);
                 }).catch(error => {
                     window.alert("Error parsing JSON:" + error);
                 })
@@ -418,13 +434,17 @@ class App extends React.Component {
      * Tällä poistetaan käyttäjältä kuvasetti. Kuvasetin kuvia ei poisteta tietokannasta, jos 
      * ne esiintyvät myös jossain toisessa kuvasetissä.
      */
-    removePictureSet = (psName) => {
+    removePictureSet = (id) => {
+
         let pictureSet = {
-            mPicturesSet: psName
+
+            //Kyseessä on picturesetin tietokanta id, mutta sitä ei voi laittaa PictureSetId
+            //nimellä, koska ASP.NET ei ehkä ota sitä vastaan silloin.
+            mUserId: parseInt(id = id || 0)
         };
         let temp = {
             mKey: parseInt(sessionStorage.getItem("password")),
-            mPictureSet: pictureSet
+            cPictureSet: pictureSet
         };
 
         let request = {
@@ -441,9 +461,15 @@ class App extends React.Component {
                     for (let i = 0; i < data.length; i++) {
                         temp.push([data[i].mPictureSet, data[i].mPSID, data[i].mName, data[i].mAccessible]);
                     }
-                    this.setState({ imageSet: temp });
-                    if (temp.length > 0)
-                        this.buttonState(temp[0].mPSID);
+                    let state = {
+                        pictureSet: this.state.pictureSet,
+                        images: this.state.images,
+                        imageSet: temp,
+                        chosenImageSet: this.state.chosenImageSet,
+                        bodyText: this.state.bodyText
+                    };
+                    this.setState(state);
+                    this.getPicturesBySet();
                 }).catch(error => {
                     window.alert("Error parsing JSON:" + error);
                 })
@@ -533,38 +559,119 @@ class App extends React.Component {
             images: [],
             imageSet: [],
             chosenImageSet: [],
+            bodyText: ""
         }
         this.setState(state);
     }
 
-    componentDidMount() {
-//        this.getPicturesBySet();
-        
+    /**
+ * Tämä eventti peruuttaa kuvasetin luomisen.
+ * @param event
+ */
+    onCancel = (event) => {
+        event.preventDefault();
+        JwModal.close('custom-modal-1')(event);
+
+        //Lopuksi nollaamme bodytekstin.
+        let state = {
+            pictureSet: this.state.pictureSet,
+            images: this.state.images,
+            imageSet: this.state.imageSet,
+            chosenImageSet: this.state.chosenImageSet,
+            bodyText: ""
+        };
+        this.setState(state);
     }
-    
+
+    /**
+ * Käyttäjä luo kuvasetin.
+ * @param event
+ */
+    onSubmit = (event) => {
+        event.preventDefault();
+        JwModal.close('custom-modal-1')(event);
+
+        //varmistetaan, että käyttäjä on kirjottanut jotain
+        if (this.state.bodyText.length > 0) {
+
+            this.addPictureSet(this.state.bodyText, null, null);
+        }
+
+        //Lopuksi nollaamme bodytekstin.
+        let state = {
+            pictureSet: this.state.pictureSet,
+            images: this.state.images,
+            imageSet: this.state.imageSet,
+            chosenImageSet: this.state.chosenImageSet,
+            bodyText: ""
+        };
+        this.setState(state);
+    }
+
+    /**
+ * Tämä päivittää käyttäjän kirjoittamat kirjaimet stateen.
+ * @param event
+ */
+    handleChange = (event) => {
+        const { name, value } = event.target;
+        this.setState({ [name]: value });
+    }
 
     render() {
+
+        const { bodyText } = this.state.bodyText;
+
         return (
             <div className="App">
                 <Switch>
                     <Route exact path="/" render={() => (
                         <div>
                             <Navi getClickedButtonId={this.buttonState} imageSets={this.state.imageSet}
-                                logout={this.logout}/>
+                                logout={this.logout} addPictureSet={this.addPictureSet}
+                                removePictureSet={this.removePictureSet} />
                             <Images imagesByButtonClicked={this.state.chosenImageSet} login={this.loginBackend}
                                 subscribe={this.subscribeBackend} removePicture={this.removePicture}
-                                currentPictureSet={this.state.pictureSet} />
-                           
+                                currentPictureSet={this.state.pictureSet} />       
                         </div>
                     )} />
                     <Route path="/newpic" render={() => (
                         <div>
                             <Navi getClickedButtonId={this.buttonState} imageSets={this.state.imageSet}
-                                logout={this.logout} />
-                            <NewPic currentPictureSet={this.state.pictureSet} saveData={this.saveData} savePicture={this.savePicture} />
+                                logout={this.logout} addPictureSet={this.addPictureSet}
+                                removePictureSet={this.removePictureSet} />
+                            <NewPic currentPictureSet={this.state.pictureSet} saveData={this.saveData}
+                                savePicture={this.savePicture} />
                         </div>
                     )}/>
                 </Switch>
+
+                <JwModal id="custom-modal-1" key="custom-modal-1">
+                    <div>
+                        <h1>Create Picture Set</h1>
+                        <form className="form2" onSubmit={this.onSubmit}>
+                            <fieldset>
+                                <label>Write below a name of your new picture set:</label>
+                                <input type="text"
+                                    name="bodyText"
+                                    onChange={this.handleChange}
+                                    value={bodyText} />
+                            </fieldset>
+                            <fieldset>
+                                <table style={{ border: "none", boxShadow: "none" }}>
+                                    <tbody>
+                                        <tr>
+                                            <td align="center">
+                                                <Button type="submit">Ok</Button>
+                                                <Button onClick={this.onCancel}>Cancel</Button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </fieldset>
+                        </form>
+                    </div>
+                </JwModal>
+
             </div>
         );
     }

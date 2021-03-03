@@ -3,7 +3,8 @@
     clickedNaviButton: boolean;
 
     constructor() {
-        this.clickedNaviButton = false;
+//        this.clickedNaviButton = false;
+        this.clickedNaviButton = true;
     }
 
     setClickedNaviButton(data) {

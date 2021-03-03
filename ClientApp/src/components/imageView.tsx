@@ -6,17 +6,17 @@ import { XCircle, Plus, ChevronLeft, ChevronRight, InfoCircle } from 'react-boot
 import dataholding from './Dataholding';
 import Login from './Login';
 import { Session } from "inspector";
-import { Link } from "react-router-dom";
+import { Link, withRouter } from "react-router-dom";
 
-export default class ImageView extends React.Component {
+class ImageView extends React.Component {
 
     constructor(props) {
         super(props);
         this.thumbnail = React.createRef();
         this.state = {
-            clickedThumbnail:0
-        }
-    }
+            clickedThumbnail: 0
+        };
+    };
 
     /**
      * Klikattu jotain thumbnailia, jotta saadaan iso kuva kyseisestä thumbnailista.
@@ -25,7 +25,7 @@ export default class ImageView extends React.Component {
     onClick1 = (event) => {
         dataholding.setClickedNaviButton(false);
         this.setState({ clickedThumbnail: event.target.id });
-    }
+    };
 
     /**
      * Klikattu isoa kuvaa, jotta palattaisiin thumbnail näkymään.
@@ -34,7 +34,7 @@ export default class ImageView extends React.Component {
     onClick2 = (event) => {
         dataholding.setClickedNaviButton(true);
         this.setState({ clickedThumbnail: 0 });
-    }
+    };
 
     /**
      * Klikattu ison kuvan vasenta laitaa, jotta siirryttäisiin aiempaan kuvaan.
@@ -46,7 +46,7 @@ export default class ImageView extends React.Component {
             let temp = parseInt(this.state.clickedThumbnail) - 1;
             this.setState({ clickedThumbnail: temp });
         }
-    }
+    };
 
     /**
      * Klikattu ison kuvan oikeaa laitaa, jotta siirryttäisiin seuraavaan kuvaan.
@@ -58,7 +58,7 @@ export default class ImageView extends React.Component {
             dataholding.setClickedNaviButton(false);
             this.setState({ clickedThumbnail: temp });
         }
-    }
+    };
 
     /**
      * Käyttäjä haluaa poistaa valitsemansa kuvan kuvasetistä.
@@ -72,23 +72,37 @@ export default class ImageView extends React.Component {
             let picture = {
                 PID: removeImg,
                 pictureSet: this.props.imagesByButtonClicked.find(e => e.pictureId == removeImg).mPictureSet
-//                url: this.props.imagesByButtonClicked.find(e => e.pictureId == removeImg).mURL 
+                //                url: this.props.imagesByButtonClicked.find(e => e.pictureId == removeImg).mURL 
             };
             this.props.removePicture(picture);
         }
-    }
+    };
 
-
+    /**
+     * Käyttäjä haluaa muokata valitsemansa kuvan kuvatekstiä tai lisätä sen toiseen kuvasettiin.
+     * @param event
+     */
     edit = (event) => {
-        let koe = 1;
-    }
+        window.alert("This is not implemented yet!");
+    };
 
+    /**
+     * Tämä funktio katkoo tekstistringin '\n' merkin kohdalta erillisiksi paragrapheiksi.
+     * @param data
+     */
+    newlineText = (data) => {
+        let newText = data.text.split("\n").map((item, i) => {
+            return (<p className="leftAlign" key={i}>{item}</p>);
+        }); 
+        return <div>{newText}</div>;
+    };
 
     render() {
         let storageusername = sessionStorage.getItem("user");
 
         //Jos käyttäjä on klikannut katseltavakseen jonkun kuvasetin.
-        if (this.props.imagesByButtonClicked.length > 0 &&
+//        if (this.props.imagesByButtonClicked.length > 0 &&
+        if (this.props.currentPictureSet.length > 0 &&
             storageusername !== null && storageusername.length > 0) {
             let images = [];
 
@@ -101,21 +115,21 @@ export default class ImageView extends React.Component {
                         <span className="imageDiv"
                             onClick={this.onClick1}
                             key={picture.pictureId}>
-                                <Image className="thumbnail"
-                                    src={picture.mURL}
-                                    gravity="center"
-                                    crop="thumb"
-                                    id={index} />
-                                <XCircle size={24}
-                                    className="deleteIcon"
-                                    onClick={(e) => { e.stopPropagation(); this.remove(e) }}
-                                    id={picture.pictureId} />
-                                <InfoCircle size={24}
-                                    className="editIcon"
-                                    onClick={(e) => { e.stopPropagation(); this.edit(e) }}
-                                    id={picture.pictureId} />
+                            <Image className="thumbnail"
+                                src={picture.mURL}
+                                gravity="center"
+                                crop="thumb"
+                                id={index} />
+                            <XCircle size={24}
+                                className="deleteIcon"
+                                onClick={(e) => { e.stopPropagation(); this.remove(e) }}
+                                id={picture.pictureId} />
+                            <InfoCircle size={24}
+                                className="editIcon"
+                                onClick={(e) => { e.stopPropagation(); this.edit(e) }}
+                                id={picture.pictureId} />
                         </span>
-                    )
+                    );
                 });
 
                 //Lisätään perään thumbnail, jossa linkki uuden kuvan lisäämiseen
@@ -150,7 +164,9 @@ export default class ImageView extends React.Component {
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        <div className="legendStyle">{picture.mLegend}</div>
+                                                        <div className="leftAlign">
+                                                            <this.newlineText className="leftAlign" text={picture.mLegend} />
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             </tbody>
@@ -194,3 +210,5 @@ export default class ImageView extends React.Component {
 
     }
 }
+
+export default withRouter(ImageView);
