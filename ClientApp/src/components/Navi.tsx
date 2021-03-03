@@ -2,6 +2,8 @@
 import ".././main.css";
 import * as rs from 'react-bootstrap';
 import { Plus, XCircle } from 'react-bootstrap-icons';
+import { JwModal } from './Modal';
+import { Form, Button, Table } from "semantic-ui-react";
 
 export default class Navi extends React.Component {
 
@@ -9,7 +11,7 @@ export default class Navi extends React.Component {
         super(props);
         this.state = {
             current: "",
-            index: 0
+            index: 0,
         };
     }
 
@@ -22,7 +24,7 @@ export default class Navi extends React.Component {
         let i = event.target.id;
         let state = {
             current: clickedButton,
-            index: i
+            index: i,
         }
         this.setState(state);
     }
@@ -44,17 +46,10 @@ export default class Navi extends React.Component {
         this.props.logout();
         let state = {
             current: "",
-            index: 0
+            index: 0,
+            bodyText: ""
         }
         this.setState(state);
-    }
-
-    /**
-     * Tämä eventti antaa käyttäjälle mahdollisuuden kuvasetin.
-     * @param event
-     */
-    addSet = (event) => {
-        let koe = 1;
     }
 
     /**
@@ -62,9 +57,17 @@ export default class Navi extends React.Component {
      * @param event
      */
     removeSet = (event) => {
-        let koe = 1;
+        let clickedButton = event.target.getAttribute("data-id");
+        this.props.removePictureSet(clickedButton);
     }
 
+    /**
+     * Tällä käyttäjä voi myöntää ja evätä katselulupia kuvaseteilleen.
+     * @param event
+     */
+    manage = (event) => {
+        window.alert("This is not implemented yet!");
+    }
     
     render() {
 
@@ -81,11 +84,14 @@ export default class Navi extends React.Component {
                 <rs.Button className="buttonstyle"
                     onClick={this.onClick1}
                     id={index}
+                    key={index}
                     data-id={name[0]}>{(name[2])}</rs.Button>
             );
             return (
                 <div className="navbarstyle">
                     <rs.Button className="buttonStyle" onClick={this.logout}>Logout</rs.Button>
+                    <br/>
+                    <rs.Button className="buttonStyle" onClick={this.manage}>Permits</rs.Button>
                     {sets}
                 </div>
             );
@@ -103,6 +109,7 @@ export default class Navi extends React.Component {
                     <rs.Button className="buttonstyle"
                         onClick={this.onClick1}
                         id={i}
+                        key={i}
                         data-id={names[i][0]}>{(names[i][2])}</rs.Button>
                 );
             }
@@ -110,35 +117,38 @@ export default class Navi extends React.Component {
             //Lisätään nappula uuden kuvasetin lisäämiseksi, jos käyttäjä on omissa seteissään.
             if (this.state.current === sessionStorage.getItem("user")) {
                 sets.push(
-                    <rs.Button className="buttonstyle" onClick={this.addSet}><Plus size={32} /></rs.Button>
+                    <rs.Button className="buttonstyle"
+                        key="custom-modal-1-button-key"
+                        onClick={JwModal.open("custom-modal-1")}><Plus size={32} /></rs.Button>
                 );
             }
 
-            //Sitten lisätään listaan kuvasettien sub-napit, eli otamme valitun käyttäjän imagesetit:
-            let index = this.props.imageSets.findIndex(o => o[0] === this.state.current && o[1] === 0);
-            if (index > -1) {
-                index++;
-                while (index < this.props.imageSets.length && this.props.imageSets[index][1] !== 0) {
+            //Seuraavaksi lisätään listaan kuvasettien sub-napit, eli otamme valitun käyttäjän imagesetit:
+            let location = this.props.imageSets.findIndex(o => o[0] === this.state.current && o[1] === 0);
+            if (location > -1) {
+                location++;
+                let index = 1;
+                while (location < this.props.imageSets.length && this.props.imageSets[location][1] !== 0) {
                     let style = "buttonstyle";         
-                    if (this.props.imageSets[index][3] == 1) {
+                    if (this.props.imageSets[location][3] == 1) {
                         style = "buttonstyle_green";
                     }
-                    if (this.props.imageSets[index][3] == 0) {
+                    if (this.props.imageSets[location][3] == 0) {
                         style = "buttonstyle_red";
                     }   
                     if (this.state.current === sessionStorage.getItem("user")) {
 
                         //Jos käyttäjä on omissa seteissään...
                         sets.push(
-                            <div>
+                            <div key={"sub-button-" + index}>
                                 <rs.Button className={style}
                                     onClick={this.onClick2}
-                                    data-id={this.props.imageSets[index][1]}>
+                                    data-id={this.props.imageSets[location][1]}>
                                     <XCircle size={16}
                                         className="deleteIcon"
                                         onClick={(e) => { e.stopPropagation(); this.removeSet(e) }}
-                                        data-id={this.props.imageSets[index][1]} />
-                                    {(this.props.imageSets[index][0])}
+                                        data-id={this.props.imageSets[location][1]} />
+                                    {(this.props.imageSets[location][0])}
                                 </rs.Button>
                             </div>
                         );
@@ -147,22 +157,25 @@ export default class Navi extends React.Component {
                         //Jos käyttäjä tarkastelee toisen käyttäjän settejä...
                         sets.push(
                             <rs.Button className={style}
+                                key={"sub-button-" + index}
                                 onClick={this.onClick2}
-                                data-id={this.props.imageSets[index][1]}>
-                                {(this.props.imageSets[index][0])}
+                                data-id={this.props.imageSets[location][1]}>
+                                {(this.props.imageSets[location][0])}
                             </rs.Button>
                         );
                     }
+                    location++;
                     index++;
                 }
             }
 
-            //Lopuksi lisätään loput käyttäjänapit.
+            //Sitten lisätään loput käyttäjänapit.
             for (let i = parseInt(this.state.index)+1; i < names.length; i++) {
                 sets.push(
                     <rs.Button className="buttonstyle"
                         onClick={this.onClick1}
                         id={i}
+                        key={i}
                         data-id={names[i][0]}>{(names[i][2])}</rs.Button>
                 );
             }
@@ -171,6 +184,8 @@ export default class Navi extends React.Component {
             return (
                 <div className="navbarstyle">
                     <rs.Button className="buttonStyle" onClick={this.logout}>Logout</rs.Button>
+                    <br/>
+                    <rs.Button className="buttonStyle" onClick={this.manage}>Permits</rs.Button>
                     {sets}
                 </div>
             );
@@ -186,37 +201,3 @@ export default class Navi extends React.Component {
     }
 }
 
-/**
- * 
- * Tulevaisuutta varten talteen
- * 
- */ 
-/*Alanappien html rakenne korvan taakse
- * <div className="NaviSubButtons" id="b1">
-        <rs.Button className="buttonstyle buttonstyle_small">Kuvasetti 1</rs.Button>
-        <rs.Button className="buttonstyle buttonstyle_small">Kuvasetti 2</rs.Button>
-        <rs.Button className="buttonstyle buttonstyle_small">Kuvasetti 3</rs.Button>
-    </div>
- */
-/*EI TARVITA ENNENKUIN ALETAAN KÄYTTÄMÄÄN ALANAPPEJA####
-   componentDidMount() {//astetaan kaikille alanapeille display:none;
-      
-       let allSubButtons = document.getElementsByClassName("NaviSubButtons");
-       for (let i = 0; i < allSubButtons.length; i++) allSubButtons[i].style.display = "none";
-   }
-   */
-
-/*EI TARVITA ENNENKUIN ALETAAN KÄYTTÄMÄÄN ALANAPPEJA######onClickin sisällä aiemmin
-        let small_buttons = document.getElementById(clickedButton);//main napin alanapit
-
-        //suljetaan kaikki muut alanapit kun painetaan uutta main nappia
-        let allSubButtons = document.getElementsByClassName("NaviSubButtons");
-        for (let i = 0; i < allSubButtons.length; i++) {
-            if (allSubButtons[i] === small_buttons) {
-                if (small_buttons.style.display === "none") small_buttons.style.display = "block";
-                else small_buttons.style.display = "none";
-                continue;
-            }
-            allSubButtons[i].style.display = "none";
-        }
-        */

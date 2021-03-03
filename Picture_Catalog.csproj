@@ -41,6 +41,7 @@
     <None Remove="ClientApp\src\components\Dataholding.tsx" />
     <None Remove="ClientApp\src\components\imageView.tsx" />
     <None Remove="ClientApp\src\components\Login.tsx" />
+    <None Remove="ClientApp\src\components\Modal.tsx" />
     <None Remove="ClientApp\src\components\Navi.tsx" />
     <None Remove="ClientApp\src\components\Newpic.tsx" />
   </ItemGroup>

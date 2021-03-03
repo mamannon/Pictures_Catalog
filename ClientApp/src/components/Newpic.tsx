@@ -13,7 +13,7 @@ class Newpic extends React.Component {
             legend: "",
             url: ""
         };
-    }
+    };
 
     /**
      * Tämä on Dropzonen kutsuma funktio, joka tallentaa stateen käyttäjän valitseman tiedoston
@@ -86,7 +86,7 @@ class Newpic extends React.Component {
             url: this.state.url
         };
         this.setState(state);
-    }
+    };
 
     /**
      * Tämä päivittää käyttäjän kirjoittamat kirjaimet stateen.
@@ -99,7 +99,7 @@ class Newpic extends React.Component {
             url: event.target.value
         };
         this.setState(state);
-    }
+    };
 
     /**
      * Käyttäjä muutti mieltään eikä haluakaan tallentaa tietokantaan mitään.
@@ -113,7 +113,7 @@ class Newpic extends React.Component {
         };
         this.setState(state);
         this.props.history.push("/");
-    }
+    };
     
     render() {
         
@@ -122,10 +122,6 @@ class Newpic extends React.Component {
                 {file.name} - {file.size} bytes
             </p>
         ));
-
-        //Jotta rivinvaihdot näkyisivät näytöllä, tarvitaan tämä:
-        //const legend = this.state.legend.replace('\\n', '\n');
-        //const legend = this.state.legend.replace('a', 'b');
         
         return (
             <div className="main_page">
@@ -156,11 +152,12 @@ class Newpic extends React.Component {
                         <TextField variant="outlined"
                             className="form3"
                             multiline
+                            rows="6"
                             name="legend"
                             onChange={this.onChangeLegend}
                             value={this.state.legend} />
                     </Form.Field>
-                    <Table style={{border: "none", boxShadow: "none"}}>
+                    <Table style={{ border: "none", boxShadow: "none" }}>
                         <Table.Row textAlign="center">
                             <Button type="submit">Ok</Button>
                             <Button onClick={this.onCancel}>Cancel</Button>
@@ -168,7 +165,7 @@ class Newpic extends React.Component {
                     </Table>
                 </Form>
             </div>
-        )  
+        ); 
     }
 }
 
