@@ -10,6 +10,10 @@ Chosen technologies for this project are React and Javascript for front-end, ASP
 
 A user needs to subscribe to the portal, and then he / she can upload pictures other subscribers to see, perhaps for all to see or only for those, who are allowed to see. Subscribers can apply a permit for each other to see a set of pictures they like to.
 
+## Requirements
+
+To run this program, you need MySQL database engine installed on your computer. Entity framework will create a database called 'PictureDatabase' by itself, provided that username 'test' and password 'test' are valid. If not, you can change correct username and password in 'appsettings.json' file.
+
 ## License
 
 This project is licensed under the MIT License.
