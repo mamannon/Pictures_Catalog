@@ -14,6 +14,8 @@ A user needs to subscribe to the portal, and then he / she can upload pictures o
 
 To run this program, you need MySQL database engine installed on your computer. Entity framework will create a database called 'PictureDatabase' by itself, provided that username 'test' and password 'test' are valid. If not, you can change correct username and password in 'appsettings.json' file.
 
+Furthermore, to get Cloudinary working, which is needed to store picture data, you need to create a Cloudinary account and replace "my_cloud_name", "my_api_key" and "my_api_secret" with appropriate values in the 'CloudinaryController.cs' file.
+
 ## License
 
 This project is licensed under the MIT License.
