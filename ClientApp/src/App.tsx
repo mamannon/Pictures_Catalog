@@ -32,27 +32,27 @@ class App extends React.Component {
             headers: { "Content-type": "application/json" },
             body: JSON.stringify(login)
         };
+        let responseStatus = 1;
 
-        fetch("/api/Pictures/Login", request).then(response => {
-            if (response.ok) {
-                response.json().then(data => {
-                    console.log(data);
-                    if (data !== 0) {
-                        sessionStorage.setItem("password", data.mPassword);
-                        sessionStorage.setItem("name", data.mName);
-                        sessionStorage.setItem("user", data.mUser);
-                        this.getPicturesBySet();
-                    } else {
-                        window.alert("Wrong username or password. Please try again.");
-                    }
-                }).catch(error => {
-                    window.alert("Error parsing JSON:" + error);
-                })
+        fetch("/api/Pictures/Login", request).then(response => {     
+            if (!response.ok) {
+                responseStatus = 0;
+            }
+            return response.json();
+        }).then(json => {
+            console.log(json);
+            if (!responseStatus) throw json;
+            if (json.mPassword && json.mName && json.mUser) {
+                sessionStorage.setItem("password", json.mPassword);
+                sessionStorage.setItem("name", json.mName);
+                sessionStorage.setItem("user", json.mUser);
+                this.getPicturesBySet();
             } else {
-                window.alert("Wrong username or password. Please try again.");
+                window.alert("Invalid JSON content. Please try again.");
             }
         }).catch(error => {
-            window.alert("Server responded with error:" + error);
+            console.log(error);
+            this.errorMessage(error);
         });
     }
 
@@ -65,27 +65,27 @@ class App extends React.Component {
             headers: { "Content-type": "application/json" },
             body: JSON.stringify(subs)
         };
+        let responseStatus = 1;
 
         fetch("/api/Pictures/Subscribe", request).then(response => {
-            if (response.ok) {
-                response.json().then(data => {
-                    console.log(data);
-                    if (data !== 0) {
-                        sessionStorage.setItem("password", data);
-                        sessionStorage.setItem("name", subs.mName);
-                        sessionStorage.setItem("user", subs.mUser);
-                        this.getPicturesBySet();
-                    } else {
-                        window.alert("You gave a username which is either already in use or you typed ##. Please give a new username.")
-                    }
-                }).catch(error => {
-                    window.alert("Error parsing JSON:" + error);
-                })
+            if (!response.ok) {
+                responseStatus = 0;
+            }
+            return response.json();
+        }).then(json => {
+            console.log(json);
+            if (!responseStatus) throw json;
+            if (json) {
+                sessionStorage.setItem("password", json);
+                sessionStorage.setItem("name", subs.mName);
+                sessionStorage.setItem("user", subs.mUser);
+                this.getPicturesBySet();
             } else {
-                window.alert("You gave a username which is either already in use or you typed ##.Please give a new username.");
+                window.alert("Invalid JSON content. Please try to log in with your current credentials and if that doesn't work, subscribe with a new username.");
             }
         }).catch(error => {
-            window.alert("Server responded with error:" + error);
+            console.log(error);
+            this.errorMessage(error);
         });
     }
 
@@ -102,15 +102,21 @@ class App extends React.Component {
             headers: { "Content-type": "application/json" },
             body: JSON.stringify(temp)
         };
+        let responseStatus = 1;
 
         fetch("/api/Pictures/Logout", request).then(response => {
-            if (response.ok) {
- //               window.alert("You are logged out of Picture Catalog.");
-            } else {
-                window.alert("Server responded with status:" + response.status);
+            if (!response.ok) {
+                responseStatus = 0;
+                return response.json();
+            }
+        }).then(json => {
+            if (!responseStatus) {
+                console.log(json);
+                throw json;
             }
         }).catch(error => {
-            window.alert("Server responded with error:" + error);
+            console.log(error);
+            this.errorMessage(error);
         });
     }
 
@@ -124,24 +130,30 @@ class App extends React.Component {
             headers: { "Content-type": "application/json" },
             body: sessionStorage.getItem("password")
         };
+        let responseStatus = 1;
 
         fetch("/api/Pictures/GetSets", request).then(response => {
-            if (response.ok) {
-                response.json().then(data => {
-                    console.log(data);
-                    let temp = [];
-                    for (let i = 0; i < data.length; i++) {
-                        temp.push([data[i].mPictureSet, data[i].mPSID, data[i].mName, data[i].mAccessible]);
-                    }
-                    this.setState({ imageSet: temp });
-                }).catch(error => {
-                    window.alert("Error parsing JSON:" + error);
-                })
+            if (!response.ok) {
+                responseStatus = 0;
+            }
+            return response.json();
+        }).then( json => {
+            console.log(json);
+            if (!responseStatus) throw json;
+            if (json && json.length > 0 && json[0].mPictureSet && json[0].mPSID > -1
+                && json[0].mName && json[0].mAccessible > -1) {
+                let temp = [];
+                for (let i = 0; i < json.length; i++) {
+                    temp.push([json[i].mPictureSet, json[i].mPSID,
+                    json[i].mName, json[i].mAccessible]);
+                }
+                this.setState({ imageSet: temp });
             } else {
-                window.alert("Server responded with status:" + response.status);
+                window.alert("Invalid JSON data.");
             }
         }).catch(error => {
-            window.alert("Server responded with error:" + error);
+            console.log(error);
+            this.errorMessage(error);
         });
     }
 
@@ -160,31 +172,31 @@ class App extends React.Component {
             headers: { "Content-type": "application/json" },
             body: JSON.stringify(temp)
         };
+        let responseStatus = 1;
 
         fetch("/api/Pictures/GetPictures", request).then(response => {
-            if (response.ok) {
-                response.json().then(data => {
-                    console.log(data);
-                    if (data.length > 0) {
-                        this.setState({ chosenImageSet: data });
-                        this.setState({ pictureSet: data[0].mPictureSet });
-                    } else {
-                        window.alert("Couldn't get any pictures. This pictureset is either empty or you are not allowed to see pictures. If you are not allowed, the owner of the pictures may allow you to see the pictures at later time.")
-                        this.setState({ chosenImageSet: [] });
-                    }
-                }).catch(error => {
-                    window.alert("Error parsing JSON:" + error);
-                })
+            if (!response.ok) {
+                responseStatus = 0;
+            } 
+            return response.json();
+        }).then(json => {
+            console.log(json);
+            if (!responseStatus) throw json;
+            if (json) {
+
+                //Vaihdetaan kuvasetti.
+                this.setState({ chosenImageSet: [] });
+                this.setState({ chosenImageSet: json });
+            }
+            if (json && json.length > 0 && json[0].mPictureSet) {
+                this.setState({ pictureSet: json[0].mPictureSet });
             } else {
-                window.alert("Server responded with status:" + response.status);
+                window.alert("Couldn't get any pictures. Requested pictureset is either empty or you are not allowed to see pictures. If you are not allowed, the owner of the pictures may allow you to see the pictures at later time.")
             }
         }).catch(error => {
-            window.alert("Server responded with error:" + error);
+            console.log(error);
+            this.errorMessage(error);
         });
-
-        //Tyhjennetään aiempi kuvasetti. Koska fetch on asynkroninen, tämä tapahtuu aina ennen 
-        //uuden kuvasetin saapumista.
-        this.setState({ chosenImageSet: [] });
     }
 
     /**
@@ -205,35 +217,35 @@ class App extends React.Component {
             body: data.file,
         };
         let id = parseInt(sessionStorage.getItem("password"));
+        let responseStatus = 1;
 
         fetch("/api/Pictures/SaveData/" + id, request).then(response => {
-            if (response.ok) {
-                response.json().then(success => {
-                    console.log(success);
+            if (!response.ok) {
+                responseStatus = 0;
+            } 
+            return response.json();
+        }).then(json => {
+            console.log(json);
+            if (!responseStatus) throw json;
 
-                    //Varmistutuaan ensin, että kuvadata on tallennettu Cloudinaryyn
-                    if (success.mURL !== null) {
+            //Varmistutuaan ensin, että kuvadata on tallennettu Cloudinaryyn
+            if (json && json.mURL) {
 
-                        //Sitten tallennetaan kuva tietokantaan.
-                        let picture = {
-                            pictureSet: data.pictureSet,
-                            url: success.mURL,
-                            legend: data.legend
-                        };
-                        this.savePicture(picture);
-                    } else {
-
-                        //Jos kuvaa ei saatu tallennettua Cloudinaryyn
-                        window.alert("Couldn't load image data into Cloudinary.");
-                    }
-                }).catch(error => {
-                    window.alert("Error parsing JSON: " + error);
-                });
+                //Sitten tallennetaan kuva tietokantaan.
+                let picture = {
+                    pictureSet: data.pictureSet,
+                    url: json.mURL,
+                    legend: data.legend
+                };
+                this.savePicture(picture);
             } else {
-                window.alert("Server responded with status: " + response.status);
+
+                //Jos kuvaa ei saatu tallennettua Cloudinaryyn
+                window.alert("Couldn't load image data into Cloudinary.");
             }
         }).catch(error => {
-            window.alert(error);
+            console.log(error);
+            this.errorMessage(error);
         });
     }
 
@@ -245,7 +257,7 @@ class App extends React.Component {
     savePicture = (data) => {
 
         let picture = {
-            mUserID: parseInt(0),
+            mUserID: 0,
             mPictureSet: data.pictureSet,
             mURL: data.url,
             mLegend: data.legend
@@ -259,25 +271,25 @@ class App extends React.Component {
             headers: { "Content-type": "application/json" },
             body: JSON.stringify(temp)
         };
+        let responseStatus = 1;
 
         fetch("/api/Pictures/SavePicture", request).then(response => {
-            if (response.ok) {
-                response.json().then(data => {
-                    console.log(data);
-                    this.setState({ chosenImageSet: data });
-                    if (data.length > 0) {
-                        this.setState({ pictureSet: data[0].mPictureSet });
-                    } else {
-                        window.alert("Couldn't save your picture to the database. Logout, login and try again.");
-                    }
-                }).catch(error => {
-                    window.alert("Error parsing JSON: " + error);
-                })
+            if (!response.ok) {
+                responseStatus = 0;
+            }
+            return response.json();
+        }).then(json => {
+            console.log(json);
+            if (!responseStatus) throw json;
+            if (json && json.length > 0 && json[0].mPictureSet) {
+                this.setState({ chosenImageSet: json });
+                this.setState({ pictureSet: json[0].mPictureSet });
             } else {
-                window.alert("Server responded with status:" + response.status);
+                window.alert("Couldn't save your picture to the database. Logout, login and try again.");
             }
         }).catch(error => {
-            window.alert("Server responded with error:" + error);
+            console.log(error);
+            this.errorMessage(error);
         });
     }
 
@@ -287,7 +299,7 @@ class App extends React.Component {
      */
     removePicture = (data) => {
         let picture = {
-            mUserID: parseInt(0),
+            mUserID: 0,
             PictureId: parseInt(data.PID = data.PID || 0),
             mPictureSet: data.pictureSet,
             mURL: data.url,
@@ -301,25 +313,29 @@ class App extends React.Component {
             headers: { "Content-type": "application/json" },
             body: JSON.stringify(temp)
         };
+        let responseStatus = 1;
 
         fetch("/api/Pictures/RemovePicture", request).then(response => {
-            if (response.ok) {
-                response.json().then(data => {
-                    console.log(data);
-                    this.setState({ chosenImageSet: data });
-                    if (data.length > 0) {
-                        this.setState({ pictureSet: data[0].mPictureSet });
-                    } else {
-                        this.setState({ pictureSet: "" });
-                    }
-                }).catch(error => {
-                    window.alert("Error parsing JSON:" + error);
-                })
+            if (!response.ok) {
+                responseStatus = 0;
+            }
+            return response.json();
+        }).then(json => {
+            console.log(json);
+            if (!responseStatus) throw json;
+            if (json) {
+                this.setState({ chosenImageSet: json });
+                if (json.length > 0 && json[0].mPictureSet) {
+                    this.setState({ pictureSet: json[0].mPictureSet });
+                } else {
+                    this.setState({ pictureSet: "" });
+                }
             } else {
-                window.alert("Server responded with status:" + response.status);
+                window.alert("Invalid JSON data.");
             }
         }).catch(error => {
-            window.alert("Server responded with error:" + error);
+            console.log(error);
+            this.errorMessage(error);
         });
     }
 
@@ -329,7 +345,7 @@ class App extends React.Component {
      */
     deletePicture = (data) => {
         let picture = {
-            mUserID: parseInt(0),
+            mUserID: 0,
             mURL: data.url
         };
         let temp = {
@@ -341,19 +357,19 @@ class App extends React.Component {
             headers: { "Content-type": "application/json" },
             body: JSON.stringify(temp)
         };
+        let responseStatus = 1;
 
         fetch("/api/Pictures/RemovePicture", request).then(response => {
-            if (response.ok) {
-                response.json().then(data => {
-                    console.log(data);
-                }).catch(error => {
-                    window.alert("Error parsing JSON:" + error);
-                })
-            } else {
-                window.alert("Server responded with status:" + response.status);
+            if (!response.ok) {
+                responseStatus = 0;
             }
+            return response.json();
+        }).then(json => {
+            console.log(json);
+            if (!responseStatus) throw json;
         }).catch(error => {
-            window.alert("Server responded with error:" + error);
+            console.log(error);
+            this.errorMessage(error);
         });
     }
 
@@ -400,33 +416,39 @@ class App extends React.Component {
             headers: { "Content-type": "application/json" },
             body: JSON.stringify(temp)
         };
+        let responseStatus = 1;
 
         fetch("/api/Pictures/AddPictureset", request).then(response => {
-            if (response.ok) {
-                response.json().then(data => {
-                    console.log(data);
-                    let temp = [];
-                    for (let i = 0; i < data.length; i++) {
-                        temp.push([data[i].mPictureSet, data[i].mPSID, data[i].mName, data[i].mAccessible]);
-                    }
-                    let state = {
-                        pictureSet: pictureSet1.mPictureSet,
-                        images: this.state.images,
-                        imageSet: temp,
-                        chosenImageSet: this.state.chosenImageSet,
-                        bodyText: this.state.bodyText
-                    };
-                    this.setState(state);
-                    const picset = (q) => (q[0] === pictureSet1.mPictureSet && sessionStorage.getItem("name") === q[2]);
-                    this.buttonState(temp[temp.findIndex(picset)][1]);
-                }).catch(error => {
-                    window.alert("Error parsing JSON:" + error);
-                })
+            if (!response.ok) {
+                responseStatus = 0;
+            }
+            return response.json();
+        }).then(json => {
+            console.log(json);
+            if (!responseStatus) throw json;
+            if (json && json.length > 0 && json[0].mPictureSet && json[0].mPSID > -1
+                && json[0].mName && json[0].mAccessible > -1) {
+                let temp = [];
+                for (let i = 0; i < json.length; i++) {
+                    temp.push([json[i].mPictureSet, json[i].mPSID,
+                    json[i].mName, json[i].mAccessible]);
+                }
+                let state = {
+                    pictureSet: pictureSet1.mPictureSet,
+                    images: this.state.images,
+                    imageSet: temp,
+                    chosenImageSet: this.state.chosenImageSet,
+                    bodyText: this.state.bodyText
+                };
+                this.setState(state);
+                const picset = (q) => (q[0] === pictureSet1.mPictureSet && sessionStorage.getItem("name") === q[2]);
+                this.buttonState(temp[temp.findIndex(picset)][1]);
             } else {
-                window.alert("Server responded with status:" + response.status);
+                window.alert("Invalid JSON data.");
             }
         }).catch(error => {
-            window.alert("Server responded with error:" + error);
+            console.log(error);
+            this.errorMessage(error);
         });
     }
 
@@ -452,32 +474,37 @@ class App extends React.Component {
             headers: { "Content-type": "application/json" },
             body: JSON.stringify(temp)
         };
+        let responseStatus = 1;
 
         fetch("/api/Pictures/RemovePictureset", request).then(response => {
-            if (response.ok) {
-                response.json().then(data => {
-                    console.log(data);
-                    let temp = new Array();
-                    for (let i = 0; i < data.length; i++) {
-                        temp.push([data[i].mPictureSet, data[i].mPSID, data[i].mName, data[i].mAccessible]);
-                    }
-                    let state = {
-                        pictureSet: this.state.pictureSet,
-                        images: this.state.images,
-                        imageSet: temp,
-                        chosenImageSet: this.state.chosenImageSet,
-                        bodyText: this.state.bodyText
-                    };
-                    this.setState(state);
-                    this.getPicturesBySet();
-                }).catch(error => {
-                    window.alert("Error parsing JSON:" + error);
-                })
+            if (!response.ok) {
+                responseStatus = 0;
+            }
+            return response.json();
+        }).then(json => {
+            console.log(json);
+            if (!responseStatus) throw json;
+            if (json && json.length > 0 && json[0].mPictureSet && json[0].mPSID > -1
+                && json[0].mName && json[0].mAccessible > -1) {
+                let temp = new Array();
+                for (let i = 0; i < json.length; i++) {
+                    temp.push([json[i].mPictureSet, json[i].mPSID, json[i].mName, json[i].mAccessible]);
+                }
+                let state = {
+                    pictureSet: this.state.pictureSet,
+                    images: this.state.images,
+                    imageSet: temp,
+                    chosenImageSet: this.state.chosenImageSet,
+                    bodyText: this.state.bodyText
+                };
+                this.setState(state);
+                this.getPicturesBySet();
             } else {
-                window.alert("Server responded with status:" + response.status);
+                window.alert("Invalid JSON data.");
             }
         }).catch(error => {
-            window.alert("Server responded with error:" + error);
+            console.log(error);
+            this.errorMessage(error);
         });
     }
 
@@ -490,28 +517,33 @@ class App extends React.Component {
             headers: { "Content-type": "application/json" },
             body: sessionStorage.getItem("password")
         };
+        let responseStatus = 1;
 
         fetch("/api/Pictures/GetApplications", request).then(response => {
-            if (response.ok) {
-                response.json().then(data => {
-                    console.log(data);
-                    let temp = new Array();
-                    for (let i = 0; i < data.length; i++) {
-                        temp.push({
-                            user: data[i].mApplicantUser,
-                            name: data[i].mApplicantName,
-                            picSet: data[i].mPictureSet
-                        });
-                    }
-                    sessionStorage.setItem("applications", JSON.stringify(temp));
-                }).catch(error => {
-                    window.alert("Error parsing JSON:" + error);
-                })
+            if (!response.ok) {
+                responseStatus = 0;
+            }
+            return response.json();
+        }).then(json => {
+            console.log(json);
+            if (!responseStatus) throw json;
+            if (json && json.length > 0 && json[0].mApplicantUser
+                && json[0].mApplicantName && json[0].mPictureSet) {
+                let temp = new Array();
+                for (let i = 0; i < json.length; i++) {
+                    temp.push({
+                        user: json[i].mApplicantUser,
+                        name: json[i].mApplicantName,
+                        picSet: json[i].mPictureSet
+                    });
+                }
+                sessionStorage.setItem("applications", JSON.stringify(temp));
             } else {
-                window.alert("Server responded with status:" + response.status);
+                window.alert("Invalid JSON data.");
             }
         }).catch(error => {
-            window.alert("Server responded with error:" + error);
+            console.log(error);
+            this.errorMessage(error);
         });
     }
 
@@ -524,29 +556,57 @@ class App extends React.Component {
             headers: { "Content-type": "application/json" },
             body: sessionStorage.getItem("password")
         };
+        let responseStatus = 1;
 
         fetch("/api/Pictures/GetAlloweds", request).then(response => {
             if (response.ok) {
                 response.json().then(data => {
                     console.log(data);
-                    let temp = new Array();
-                    for (let i = 0; i < data.length; i++) {
-                        temp.push({
-                            user: data[i].mApplicantUser,
-                            name: data[i].mApplicantName,
-                            picSet: data[i].mPictureSet
-                        });
-                    }
-                    sessionStorage.setItem("alloweds", JSON.stringify(temp));
+
                 }).catch(error => {
                     window.alert("Error parsing JSON:" + error);
                 })
             } else {
                 window.alert("Server responded with status:" + response.status);
             }
+            return response.json();
+        }).then(json => {
+            console.log(json);
+            if (!responseStatus) throw json;
+            if (json && json.length > 0 && json[0].mApplicantUser
+                && json[0].mApplicantName && json[0].mPictureSet) {
+                let temp = new Array();
+                for (let i = 0; i < json.length; i++) {
+                    temp.push({
+                        user: json[i].mApplicantUser,
+                        name: json[i].mApplicantName,
+                        picSet: json[i].mPictureSet
+                    });
+                }
+                sessionStorage.setItem("alloweds", JSON.stringify(temp));
+            } else {
+                window.alert("Invalid JSON data.");
+            }
         }).catch(error => {
-            window.alert("Server responded with error:" + error);
+            console.log(error);
+            this.errorMessage(error);
         });
+    }
+
+    errorMessage = (error) => {
+        if (error.mCode && error.mMessage) {
+            if (error.mCode < 500) {
+                window.alert("Application error: " + error.mCode +
+                    "\nMessage: " + error.mMessage +
+                    "\nDetails: " + error.mDetails);
+            } else {
+                window.alert("Server error: " + error.mCode +
+                    "\nMessage: " + error.mMessage +
+                    "\nDetails: " + error.mDetails);
+            }
+        } else {
+            window.alert(error);
+        }
     }
 
     logout = () => {

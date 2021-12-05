@@ -41,6 +41,13 @@ namespace Picture_Catalog.Controllers
         private static List<string> _publicIds = new List<string>();
         private static Timer _timer;
 
+        public class Error
+        {
+            public int mCode { get; set; }
+            public string mMessage { get; set; }
+            public string mDetails { get; set; }
+        }
+
         public class LogIn
         {
             public string mUser { get; set; }
@@ -130,7 +137,7 @@ namespace Picture_Catalog.Controllers
 //        [HttpPost]
 //        [Route("api/Pictures/Login")]
 #else
-            [HttpPost]
+        [HttpPost]
         [Route("api/Pictures/Login")]
 #endif
         public Subs Login([FromBody]LogIn passwd)
@@ -152,13 +159,11 @@ namespace Picture_Catalog.Controllers
             }
             catch (Exception e) 
             {
-                Response.StatusCode=500;
-                return null;
+                throw new Exception("500@Login encountered an internal server error.", e);
             }
 
             //Kirjautumisyritys evätään.
-            Response.StatusCode = 422;
-            return null;
+            throw new Exception("422@Login failed. Check your credentials and try again.");
         }
 
         /// <summary>
@@ -190,13 +195,11 @@ namespace Picture_Catalog.Controllers
             }
             catch (Exception e)
             {
-                Response.StatusCode = 500;
-                return;
+                throw new Exception("500@Logout encountered an internal server error", e);
             }
 
             //Kirjautumisyritys evätään.
-            Response.StatusCode = 422;
-            return;
+            throw new Exception("422@Logout failed. Couldn't log you out.");
         }
 
         /// <summary>
@@ -235,13 +238,11 @@ namespace Picture_Catalog.Controllers
             }
             catch (Exception e)
             {
-                Response.StatusCode = 500;
-                return 0;
+                throw new Exception("500@Subscribe encountered an internal server error.", e);
             }
 
             //Uuden käyttäjän luonti epäonnistui.
-            Response.StatusCode = 422;
-            return 0;
+            throw new Exception("403@You gave a username which is either already in use or you typed ##. Please give a new username.");
         }
     
         /// <summary>
@@ -265,16 +266,14 @@ namespace Picture_Catalog.Controllers
                 // Katsotaan, onko käyttäjä olemassa.
                 if (!CanIPass(id))
                 {
-                    Response.StatusCode = 403;
-                    return null;
+                    throw new Exception("403@Forbidden. Please try to log in again.");
                 }
                 TempLog usr = _currentUsers.Find(q => q.mTemporaryID == id);
                 return GetButtons(_context.dbUsers.Single(e => e.mUser==usr.mUser));
             }
             catch (Exception e)
             {
-                Response.StatusCode = 500;
-                return null;
+                throw new Exception("500@Get encountered an internal server error.", e);
             }
         }
 
@@ -287,6 +286,7 @@ namespace Picture_Catalog.Controllers
             _context.Database.EnsureCreated();
 
             if (_context.dbPictureSets.Any()) return;
+            /*
             //Alla oleva on testausta varten
 
             List<User> us = new List<User>()
@@ -395,7 +395,7 @@ namespace Picture_Catalog.Controllers
                 int koe = 0;
             }
             //Yllä oleva on testausta varten
-
+            */
         }
  
         /// <summary>
@@ -422,16 +422,14 @@ namespace Picture_Catalog.Controllers
                 // Katsotaan, onko käyttäjä olemassa.
                 if (!CanIPass(tempUser))
                 {
-                    Response.StatusCode = 403;
-                    return null;
+                    throw new Exception("403@Forbidden. Please try to log in again.");
                 }
 
                 // Katsotaan, onko kuvasetti olemassa.
                 TempLog user = _currentUsers.Find(q => q.mTemporaryID == tempUser);
                 if (null == _context.dbPictureSets.Find(id.mPSID))
                 {
-                    Response.StatusCode = 422;
-                    return null;
+                    throw new Exception("422@Couldn't find applied pictureset.");
                 }
 
                 // Katsotaan, onko käyttäjällä oikeutta katsella tätä kuvasettiä.
@@ -442,9 +440,9 @@ namespace Picture_Catalog.Controllers
                 if (allow == null)
                 {
 
-                        //Käyttäjällä ei ole oikeutta katsella kuvia, mutta välitetään
-                        //tieto hänen halustaan kuvasetin omistajan luettavaksi, jollei hän ole
-                        //jo tehnyt tätä.
+                    //Käyttäjällä ei ole oikeutta katsella kuvia, mutta välitetään
+                    //tieto hänen halustaan kuvasetin omistajan luettavaksi, jollei hän ole
+                    //jo tehnyt tätä.
                     int applicantUserId = _context.dbUsers.Single(g => g.mUser == user.mUser).UserId;
                     int ownerUserId = _context.dbPictureSets.Single(g => g.PictureSetId == id.mPSID).mUserId;
                     if (null != _context.dbAppliedRights.FirstOrDefault(
@@ -476,8 +474,7 @@ namespace Picture_Catalog.Controllers
             }
             catch (Exception e)
             {
-                 Response.StatusCode = 500;
-                 return null;
+                throw new Exception("500@GetAllPictures encountered an internal server error.", e);
             }
 
         }
@@ -514,8 +511,7 @@ namespace Picture_Catalog.Controllers
                 // Katsotaan, onko käyttäjä olemassa.
                 if (!CanIPass(tempUser))
                 {
-                    Response.StatusCode = 403;
-                    return null;
+                    throw new Exception("403@Forbidden. Please try to log in again.");
                 }
 
                 //Luodaan kuvasetti.
@@ -528,8 +524,7 @@ namespace Picture_Catalog.Controllers
             }
             catch (Exception e)
             {
-                Response.StatusCode = 500;
-                return null;
+                throw new Exception("500@AddPictureset encountered an internal server error.", e);
             }
         }
 
@@ -555,8 +550,7 @@ namespace Picture_Catalog.Controllers
                 // Katsotaan, onko sessio olemassa.
                 if (!CanIPass(tempUser))
                 {
-                    Response.StatusCode = 403;
-                    return null;
+                    throw new Exception("403@Forbidden. Please try to log in again.");
                 }
 
                 //Katsotaan, onko käyttäjällä olemassa poistettava kuvakokoelma.
@@ -595,8 +589,7 @@ namespace Picture_Catalog.Controllers
 
                 if (null == picSet)
                 {
-                    Response.StatusCode = 422;
-                    return null;
+                   throw new Exception("422@Couldn't remove asked picture set.");
                 }
 
                 //Poistetaan kuvataulusta kaikki kuvat, jotka esiintyvät vain tässä kuvakokoelmassa
@@ -629,8 +622,7 @@ namespace Picture_Catalog.Controllers
             } 
             catch (Exception e)
             {
-                Response.StatusCode = 500;
-                return null;
+                throw new Exception("500@RemoveSet encountered an internal server error.", e);
             }
         }
 
@@ -656,8 +648,7 @@ namespace Picture_Catalog.Controllers
                 // Katsotaan, onko käyttäjä olemassa.
                 if (!CanIPass(tempUser))
                 {
-                    Response.StatusCode = 403;
-                    return null;
+                    throw new Exception("403@Forbidden. Please try to log in again.");
                 }
 
                 //Käyttäjä on olemassa, yritetään ladata kuva Cloudinaryyn.
@@ -680,13 +671,11 @@ namespace Picture_Catalog.Controllers
                     _publicIds.Add(publicId);
                     return Json(pic);
                 }
-                Response.StatusCode = 500;
-                return null;
+                throw new Exception("422@Cloudinary failed. Picture data lost.");
             } 
             catch (Exception e)
             {
-                Response.StatusCode = 500;
-                return null;
+                throw new Exception("500@SaveData encountered an internal server error.", e);
             }
         }
 
@@ -713,8 +702,7 @@ namespace Picture_Catalog.Controllers
                 // Katsotaan, onko sessio olemassa.
                 if (!CanIPass(tempUser))
                 {
-                    Response.StatusCode = 403;
-                    return null;
+                    throw new Exception("403@Forbidden. Please try to log in again.");
                 }
 
                 //Katsotaan, että kuva ja kuvasetti ovat kunnossa.
@@ -724,15 +712,13 @@ namespace Picture_Catalog.Controllers
                 string picSetName = pic.mPictureSet;
                 if (pic == null || picSetName == null)
                 {
-                    Response.StatusCode = 422;
-                    return null;
+                    throw new Exception("403@Forbidden. You didn't give valid picture data.");
                 }
                 PictureSet picSet = _context.dbPictureSets.FirstOrDefault(q => q.mPictureSet == picSetName);
                 int userId = _context.dbUsers.First(o => o.mUser == user.mUser).UserId;
                 if (picSet != null && picSet.mUserId != userId)
                 {
-                    Response.StatusCode = 422;
-                    return null;
+                    throw new Exception("403@Forbidden. You're trying to use a reserved picture set name.");
                 }
                 pic.mUserId = userId;
 
@@ -802,8 +788,7 @@ namespace Picture_Catalog.Controllers
             }
             catch (Exception e)
             {
-                Response.StatusCode = 500;
-                return null;
+                throw new Exception("500@SavePicture encountered an internal server error.", e);
             }
         }
 
@@ -831,8 +816,7 @@ namespace Picture_Catalog.Controllers
                 // Katsotaan, onko sessio olemassa.
                 if (!CanIPass(tempUser))
                 {
-                    Response.StatusCode = 403;
-                    return null;
+                    throw new Exception("403@Forbidden. Please try to log in again.");
                 }
 
                 TempLog user = _currentUsers.Find(q => q.mTemporaryID == tempUser);
@@ -898,8 +882,7 @@ namespace Picture_Catalog.Controllers
             }
             catch (Exception e)
             {
-                Response.StatusCode = 500;
-                return null;
+                throw new Exception("500@RemovePicture encountered an internal server error.", e);
             }
         }
 
@@ -923,9 +906,8 @@ namespace Picture_Catalog.Controllers
 
                 // Katsotaan, onko käyttäjä olemassa.
                 if (!CanIPass(tempUser))
-                { 
-                    Response.StatusCode = 403;
-                    return;
+                {
+                    throw new Exception("403@Forbidden. Please try to log in again.");
                 }
 
                 // Katsotaan, onko kuva olemassa kyseisellä käyttäjällä ja annetulla URL:lla.
@@ -936,8 +918,7 @@ namespace Picture_Catalog.Controllers
                 pic = pics.Single(e => e.mURL==pic.mURL);
                 if (pic == null)
                 {
-                    Response.StatusCode = 422;
-                    return;
+                    throw new Exception("422@Coudn't delete the picture, because it doesn't exist in a database");
                 }
 
                 // Käydään läpi referenssitaulukon kaikki rivit ja poistetaan ne, joilla
@@ -962,8 +943,7 @@ namespace Picture_Catalog.Controllers
             }
             catch (Exception e)
             {
-                Response.StatusCode = 500;
-                return;
+                throw new Exception("500@DeletePicture encountered an internal server error.", e);
             }
         }
 
@@ -992,8 +972,7 @@ namespace Picture_Catalog.Controllers
                 //Katsotaan, onko sessio olemassa
                 if (!CanIPass(tempUser))
                 {
-                    Response.StatusCode = 403;
-                    return null;
+                    throw new Exception("403@Forbidden. Please try to log in again.");
                 }
 
                 //Haetaan tälle käyttäjälle osoitetut hakemukset
@@ -1015,8 +994,7 @@ namespace Picture_Catalog.Controllers
             } 
             catch (Exception e)
             {
-                Response.StatusCode = 500;
-                return null;
+                throw new Exception("500@GetApplications encountered an internal server error.", e);
             }
         }
 
@@ -1041,8 +1019,7 @@ namespace Picture_Catalog.Controllers
                 // Katsotaan, onko sessio olemassa.
                 if (!CanIPass(id))
                 {
-                    Response.StatusCode = 403;
-                    return null;
+                    throw new Exception("403@Forbidden. Please try to log in again.");
                 }
 
                 //Haetaan tämän käyttäjän myöntämät käyttöluvat
@@ -1063,8 +1040,7 @@ namespace Picture_Catalog.Controllers
             } 
             catch (Exception e)
             {
-                Response.StatusCode = 500;
-                return null;
+                throw new Exception("500@GetAlloweds encountered an internal server error.", e);
             }
         }
 

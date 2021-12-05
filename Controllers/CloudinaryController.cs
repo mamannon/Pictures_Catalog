@@ -18,12 +18,14 @@ namespace Picture_Catalog.Controllers
     {
 
         /// <summary>
-        /// Tämä sisältää Cloudinary-tilin tiedot.
+        /// Tämä sisältää Cloudinary-tilin tiedot. Sinun pitää kirjoittaa oman Cloudinary tilisi
+        /// tiedot alla oleviin kenttiin!
         /// </summary>
         private static Account account = new Account(
             "my_cloud_name",
             "my_api_key",
             "my_api_secret");
+
 
         /// <summary>
         /// Cloudinary rajapinta. Tämän ilmentymä luodaan Picture Catalog serverin käynnistyessä.
