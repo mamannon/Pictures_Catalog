@@ -1,102 +1,21 @@
 # Picture Catalog
 
-## Alustus
+Internet is nothing without pictures and movies. We have many excellent medias like YouTybe, Instagram, Picasa and so on, but I haven't found a portal, where you can upload pictures and select individually who can see them.
 
-Tämän projektin idea on web applikaatio, jossa käyttäjä voi selata  aihepiireittäin järjestettyjä kuvia. 
+That was a good theme for a full stack course work! 
 
-### Vaihe 1
+## Preface
 
-Mahdollisimman yksinkertainen web-applikaatio, joka mahdollistaa ainoastaan olemassa olevien kuvien selaamisen, mutta ei kuvien lisäämistä tai poistamista. Lisäksi mahdollisuus tulostaa kuvia.
+Chosen technologies for this project are React and Javascript for front-end, ASP.NET and C# for back-end, SQL database written with Entity Framework Core and Cloudinary cloud service. The project is written by Microsoft Visual Studio 2019. Please notice I really mean JavaScript, not TypeScript, although there are TypeScript files in a project. For some reason Visual Studio prefers TypeScript over JavaScript, and that's the reason you will see red error underlines in a Visual Studio IDE: there really are JavaScript code in TypeScript files, and that mixture does compile and run.
 
-### Vaihe 2
+A user needs to subscribe to the portal, and then he / she can upload pictures other subscribers to see, perhaps for all to see or only for those, who are allowed to see. Subscribers can apply a permit for each other to see a set of pictures they like to.
 
-Applikaatioon lisätään mahdollisuus lisätä ja poistaa kuvia. Mahdollisuus lisätä kuvatekstejä. Tarkasteltavan kuvan kuvakoon muuttaminen.
+## Requirements
 
-### Vaihe 3
+To run this program, you need MySQL database engine installed on your computer. Entity framework will create a database called 'PictureDatabase' by itself, provided that username 'test' and password 'test' are valid. If not, you can change correct username and password in 'appsettings.json' file.
 
-Sisäänkirjautuminen.
+Furthermore, to get Cloudinary working, which is needed to store picture data, you need to create a Cloudinary account and replace "my_cloud_name", "my_api_key" and "my_api_secret" with appropriate values in the 'CloudinaryController.cs' file.
 
+## License
 
-
- 
-
-### Tietokanta
-#### Käyttäjä User
-- id
-- käyttäjätunnus
-- salasana
-- käyttäjänimi
-
-#### Kuvakokoelma PictureSet
-- id
-- käyttäjäID
-- kuvakokoelman nimi
-
-#### Kuva Picture
-- id
-- käyttäjäID
-- url
-- kuvateksti
-- kuvakokoelman nimi
-
-#### Referenssitaulukko PictureSetPicture
-- kuvaID
-- kuvakokoelmaID
-
-#### Käyttöoikeuspyyntötaulukko AppliedRight
-- anovan käyttäjäID
-- omistajan käyttäjäID
-- kuvakokoelmaID
-
-#### Käyttöoikeustaulukko AllowedUser
-- omistajan käyttäjäID
-- käyttöoikeuden saaneen käyttäjätunnus
-- kuvakokoelman nimi
-
-### Rajapinnan tiedonvälitysluokat
-
-#### Application
-- kuvakokoelman nimi
-- kuvakokoelman omistajan nimi
-- kuvakokoelman katselijan nimi
-
-#### PictureWrapper
-- tilapäinen salasana
-- Picture luokka, sama kuin tietokannassa
-
-#### PictureSetWrapper
-- tilapäinen salasana
-- PictureSet luokka, sama kuin tietokannassa
-
-#### Picture luokka 
--sama kuin tietokannassa
-
-#### Button
-- käyttäjänimi (ei käyttäjätunnus)
-- kuvakokoelman nimi
-- kuvakokoelmaID
-- boolean luvuilla 0 ja 1 toteutettuna, kertoo, voiko käyttäjä katsella kuvasetin kuvia
-
-#### IntWrapper
-- tilapäinen salasana
-- int luku, käytetään kuvakokoelman identifiointiin
-
-#### Subs
-- ehdotettu käyttäjänimi
-- ehdotettu käyttäjätunnus
-- ehdotettu salasana
-
-#### TempLog
-- käyttäjätunnus
-- tilapäinen salasana
-
-#### LogIn
-- käyttäjätunnus
-- varsinainen salasana
-
-### TODO
-- backendin testaus
-- frontendin kuvasettien ryhmittely käyttäjien mukaan
-- frontendin kuvasettien nappien väritys sen mukaan, voiko käyttäjä katsella kuvasettiä
-- ikkuna, jossa käyttäjä voi nähdä kuvasettiensä käyttöoikeudet ja muuttaa niitä
-- tyylit
+This project is licensed under the MIT License.
