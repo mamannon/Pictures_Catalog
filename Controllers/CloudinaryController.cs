@@ -21,10 +21,14 @@ namespace Picture_Catalog.Controllers
         /// Tämä sisältää Cloudinary-tilin tiedot. Sinun pitää kirjoittaa oman Cloudinary tilisi
         /// tiedot alla oleviin kenttiin!
         /// </summary>
+        //private static Account account = new Account(
+        //    "my_cloud_name",
+        //    "my_api_key",
+        //    "my_api_secret");
         private static Account account = new Account(
-            "my_cloud_name",
-            "my_api_key",
-            "my_api_secret");
+            "damapcodw",
+            "114553953532671",
+            "En-UGNjqkdKWBusND1-4HS6w3CU");
 
 
         /// <summary>
