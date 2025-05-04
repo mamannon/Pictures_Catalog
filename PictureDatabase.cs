@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +11,7 @@ namespace Picture_Catalog
 
     public class User
     {
-
+        [JsonPropertyName("UserId")]
         public int UserId { get; set; }
         public string mPassword { get; set; }
         public string mUser { get; set; }
@@ -20,21 +21,26 @@ namespace Picture_Catalog
 
     public class PictureSet
     {
-
+        [JsonPropertyName("PictureSetId")]
         public int PictureSetId { get; set; }
         public string mPictureSet { get; set; }
         public ICollection<PictureSetPicture> cPictures { get; set; }
         public int mUserId { get; set; }
         public ICollection<AllowedUser> cAllowedUsers { get; set; }
+
+        [JsonPropertyName("User")]
         public User User { get; set; }
     }
 
     public class AllowedUser
     {
+        [JsonPropertyName("AllowedUserId")]
         public int AllowedUserId { get; set; }
         public int mOwnerUserId { get; set; }
         public string mAllowedUser { get; set; }
         public string mPictureSet { get; set; }
+
+        [JsonPropertyName("PictureSet")]
         public PictureSet PictureSet { get; set; }
     }
 
@@ -42,6 +48,8 @@ namespace Picture_Catalog
     {
         public string mPublicId { get; set; }
         public int mUserId { get; set; }
+
+        [JsonPropertyName("PictureId")]
         public int PictureId { get; set; }
         public string mPictureSet { get; set; }
         public string mURL { get; set; }
@@ -51,7 +59,10 @@ namespace Picture_Catalog
 
     public class PictureSetPicture
     {
+        [JsonPropertyName("PictureSet")]
         public PictureSet PictureSet { get; set; }
+
+        [JsonPropertyName("Picture")]
         public Picture Picture { get; set; }
         public int mPictureSetId { get; set; }
         public int mPictureId { get; set; }
@@ -59,6 +70,7 @@ namespace Picture_Catalog
 
     public class AppliedRight
     {
+        [JsonPropertyName("AppliedRightId")]
         public int AppliedRightId { get; set; }
         public int mApplicantUserId { get; set; }
         public int mOwnerUserId { get; set; }

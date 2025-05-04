@@ -123,6 +123,24 @@
     opacity: 0.5;
 }
 
+.deleteIconSmall {
+    z-index: 10;
+    margin-right: 2px;
+    background-color: #fff;
+    border-radius: 15px;
+    cursor: pointer;
+    opacity: 0.5;
+}
+
+.editIconSmall {
+    z-index: 10;
+    margin-right: 2px;
+    background-color: #fff;
+    border-radius: 15px;
+    cursor: pointer;
+    opacity: 0.5;
+}
+
 .deleteIcon:hover {
     opacity:1;
 }
@@ -197,16 +215,18 @@ legendStyle {
     z-index: 1000;
     /* enables scrolling for tall modals */
     overflow: auto;
-    .jw-modal-body
+    pointer-events: auto;
+}
 
-{
+.jw-modal-body {
     padding: 20px;
     background: #fff;
     /* margin exposes part of the modal background */
     margin: 40px;
+    z-index: 1000;
+    pointer-events: auto;
 }
 
-}
 
 .jw-modal-background {
     /* modal background fixed across whole screen */
@@ -219,7 +239,7 @@ legendStyle {
     background-color: #000;
     opacity: 0.75;
     /* z-index must be below .modal and above everything else  */
-    z-index: 900;
+    z-index: 999;
 }
 
 body.jw-modal-open {

@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "target": "es5",
-    "allowJs": true,
+    "target": "es6",
+    "allowJs": false,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
@@ -19,6 +19,6 @@
     "skipLibCheck": false
   },
   "include": [
-    "src"
+    "src/**/*"
   ]
 }

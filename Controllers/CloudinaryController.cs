@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 
 namespace Picture_Catalog.Controllers
 {
@@ -18,18 +19,9 @@ namespace Picture_Catalog.Controllers
     {
 
         /// <summary>
-        /// Tämä sisältää Cloudinary-tilin tiedot. Sinun pitää kirjoittaa oman Cloudinary tilisi
-        /// tiedot alla oleviin kenttiin!
+        /// Tämä sisältää Cloudinary-tilin tiedot.
         /// </summary>
-        //private static Account account = new Account(
-        //    "my_cloud_name",
-        //    "my_api_key",
-        //    "my_api_secret");
-        private static Account account = new Account(
-            "damapcodw",
-            "114553953532671",
-            "En-UGNjqkdKWBusND1-4HS6w3CU");
-
+        private static Account account = null;
 
         /// <summary>
         /// Cloudinary rajapinta. Tämän ilmentymä luodaan Picture Catalog serverin käynnistyessä.
@@ -69,6 +61,20 @@ namespace Picture_Catalog.Controllers
         /// </summary>
         public static void Initialize()
         {
+
+            // Cloudinary-tilin tiedot haetaan UserSecretsistä. Sinun täytyy lisätä oman Cloudinary-tilisi
+            // tiedot UserSecrets-tiedostoon. Tai sitten voit vain lisätä ne suoraan alla kommentoituun koodiin
+            // korvaamalla "my_cloud_name", "my_api_key" ja "my_api_secret" omilla tiedoillasi.
+            //account = new Account(
+            //    "my_cloud_name",
+            //    "my_api_key",
+            //    "my_api_secret");
+            var config = new ConfigurationBuilder().AddUserSecrets<Program>().Build();
+            account = new Account(
+                config["my_cloud_name"],
+                config["my_api_key"],
+                config["my_api_secret"]);
+
             cloudinary = new Cloudinary(account);
         }
 

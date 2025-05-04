@@ -1,15 +1,4 @@
 ﻿
-/*
- * USESWAGGER makro pitää määritellä seuraavissa tiedostoissa:
- * Startup.cs, PictureServerController.cs.
- */
-
-//Käytä swaggeria
-//#define USESWAGGER
-
-//Käytä itse koodaamaasi frontendiä
-#undef USESWAGGER
-
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -22,24 +11,40 @@ using System.Xml.Serialization;
 using CloudinaryDotNet.Actions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.NewtonsoftJson;
+//using Microsoft.AspNetCore.Mvc.NewtonsoftJson;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Timers;
+using CloudinaryDotNet;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using System.Diagnostics;
+using System.ComponentModel;
+//import io.swagger.v3.oas.annotations.Operation;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace Picture_Catalog.Controllers
 {
-
-    //public class PictureServerController : ControllerBase
-    public class PictureServerController : Controller
+    public class PictureServerController : Controller, IDisposable
     {
 
         private readonly PictureDatabase _context;
         private static List<TempLog> _currentUsers = new List<TempLog>();
-        private static List<string> _publicIds = new List<string>();
-        private static Timer _timer;
+        private static List<PublicId> _publicIds = new List<PublicId>();
+        private Timer _timer;
+        
+
+        public class PublicId
+        {
+            public PublicId(Picture pic, TempLog user)
+            {
+                mPicture = pic;
+                mUser = user;
+            }
+            public Picture mPicture { get; set; }
+            public TempLog mUser { get; set; }
+        }
 
         public class Error
         {
@@ -78,6 +83,7 @@ namespace Picture_Catalog.Controllers
         {
             public int mKey { get; set; }
             public PictureSet cPictureSet { get; set; }
+            public Application[] cApplications { get; set; }
         }
 
         public class IntWrapper
@@ -99,6 +105,7 @@ namespace Picture_Catalog.Controllers
             public string mPictureSet { get; set; }
             public string mApplicantName { get; set; }
             public string mApplicantUser { get; set; }
+            public bool mGranted { get; set; }
         }
 
         public PictureServerController(PictureDatabase context)
@@ -109,21 +116,56 @@ namespace Picture_Catalog.Controllers
             _timer.Start();
         }
 
+        public new void Dispose()
+        {
+            base.Dispose();
+            if (_timer != null)
+            {
+                _timer.Stop();
+                _timer.Dispose();
+                _timer = null;
+            }
+            GC.SuppressFinalize(this);
+        }
+
         /// <summary>
-        /// Timeria tarvitaan putsaamaan pois sessiot, joissa ei ole tapahtunut tuntiin mitään.
+        /// Timeria tarvitaan putsaamaan pois sessiot, joissa ei ole tapahtunut tuntiin mitään. Samalla tallennetaan
+        /// tietokantaan mahdolliset kuvat, jotka ovat Cloudinaryssa, mutta eivät vielä tietokannassa.
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        static void timer_Elapsed(object sender, ElapsedEventArgs e)
+        void timer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            int temp = _currentUsers.Count;
-            for (int i=0; i < temp; i++)
+            List<TempLog> deleteUsers = new List<TempLog>();
+            List<PublicId> deletepublicIds = new List<PublicId>();
+            foreach (TempLog t in _currentUsers)
             {
-                if (_currentUsers[i].mLogTime.AddHours(1) < DateTime.Now)
+                //if (t.mLogTime.AddHours(1) < DateTime.Now)
+                if (t.mLogTime.AddMinutes(2) < DateTime.Now)
                 {
-                    _currentUsers.RemoveAt(i);
-                    temp--;
+
+                    // Ennen session poistamista tarkistetaan, onko käyttäjällä kuvia tallentamatta tietokantaan.
+                    foreach (PublicId p in _publicIds)
+                    {
+                        if (p.mUser.mTemporaryID == t.mTemporaryID)
+                        {
+                            deletepublicIds.Add(p);
+                        }
+                    }
+                    deleteUsers.Add(t);
                 }
+            }
+            foreach (TempLog t in deleteUsers)
+            {
+
+                // Poistetaan yliaikaiset käyttäjät listasta.
+                _currentUsers.Remove(t);
+            }
+            foreach (PublicId p in deletepublicIds)
+            {
+
+                // Jos käyttäjällä on kuvia tallentamatta, tallennetaan ne. SavePictureToDatabase samalla poistaa tapauksen. 
+                SavePictureToDatabase(p.mPicture, p.mUser, null);
             }
         }
 
@@ -132,14 +174,8 @@ namespace Picture_Catalog.Controllers
             /// </summary>
             /// <param name="passwd"></param>
             /// <returns></returns>
-#if USESWAGGER
-        [HttpPost("Login")]
-//        [HttpPost]
-//        [Route("api/Pictures/Login")]
-#else
         [HttpPost]
         [Route("api/Pictures/Login")]
-#endif
         public Subs Login([FromBody]LogIn passwd)
         {
 
@@ -159,11 +195,11 @@ namespace Picture_Catalog.Controllers
             }
             catch (Exception e) 
             {
-                throw new Exception("500@Login encountered an internal server error.", e);
+                throw new CustomException("500@Login encountered an internal server error.", e);
             }
 
             //Kirjautumisyritys evätään.
-            throw new Exception("422@Login failed. Check your credentials and try again.");
+            throw new CustomException("422@Login failed. Check your credentials and try again.");
         }
 
         /// <summary>
@@ -171,12 +207,8 @@ namespace Picture_Catalog.Controllers
         /// </summary>
         /// <param name="passwd"></param>
         /// <returns></returns>
-#if USESWAGGER
-        [HttpPost("Logout")]
-#else
         [HttpPost]
         [Route("api/Pictures/Logout")]
-#endif
         public void Logout([FromBody] TempLog passwd)
         {
 
@@ -188,18 +220,21 @@ namespace Picture_Catalog.Controllers
                 if (user != null)
                 {
 
-                    //Jos käyttäjä on olemassa, poistetaan sen loggaus.
+                    //Jos käyttäjä on olemassa, poistetaan sen loggaus ja tuhotaan timer.
                     _currentUsers.Remove(user);
+                    _timer.Stop();
+                    _timer.Dispose();
+                    _timer = null;
                     return;
                 }
             }
             catch (Exception e)
             {
-                throw new Exception("500@Logout encountered an internal server error", e);
+                throw new CustomException("500@Logout encountered an internal server error", e);
             }
 
             //Kirjautumisyritys evätään.
-            throw new Exception("422@Logout failed. Couldn't log you out.");
+            throw new CustomException("422@Logout failed. Couldn't log you out.");
         }
 
         /// <summary>
@@ -207,12 +242,8 @@ namespace Picture_Catalog.Controllers
         /// </summary>
         /// <param name="passwd"></param>
         /// <returns></returns>
-#if USESWAGGER
-        [HttpPost("Subscribe")]
-#else
         [HttpPost]
         [Route("api/Pictures/Subscribe")]
-#endif
         public int Subscribe([FromBody] Subs passwd)
         {
 
@@ -238,11 +269,11 @@ namespace Picture_Catalog.Controllers
             }
             catch (Exception e)
             {
-                throw new Exception("500@Subscribe encountered an internal server error.", e);
+                throw new CustomException("500@Subscribe encountered an internal server error.", e);
             }
 
             //Uuden käyttäjän luonti epäonnistui.
-            throw new Exception("403@You gave a username which is either already in use or you typed ##. Please give a new username.");
+            throw new CustomException("403@You gave a username which is either already in use or you typed ##. Please give a new username.");
         }
     
         /// <summary>
@@ -251,13 +282,8 @@ namespace Picture_Catalog.Controllers
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-#if USESWAGGER
-        [HttpPost("GetSets")]
-#else
         [HttpPost]
         [Route("api/Pictures/GetSets")]
-#endif
-        
         public IEnumerable<Button> Get([FromBody] int id)
         {
             try
@@ -266,13 +292,17 @@ namespace Picture_Catalog.Controllers
                 // Katsotaan, onko käyttäjä olemassa.
                 if (!CanIPass(id))
                 {
-                    throw new Exception("403@Forbidden. Please try to log in again.");
+                    throw new CustomException("403@Forbidden. Please try to log in again.");
                 }
                 TempLog usr = _currentUsers.Find(q => q.mTemporaryID == id);
                 return GetButtons(_context.dbUsers.Single(e => e.mUser==usr.mUser));
             }
             catch (Exception e)
             {
+                if (e is CustomException)
+                {
+                    throw;
+                }
                 throw new Exception("500@Get encountered an internal server error.", e);
             }
         }
@@ -285,9 +315,19 @@ namespace Picture_Catalog.Controllers
         {
             _context.Database.EnsureCreated();
 
-            if (_context.dbPictureSets.Any()) return;
-            /*
-            //Alla oleva on testausta varten
+            try
+            {
+                if (_context.dbUsers != null && _context.dbUsers.Count() > 0) return;
+            }
+            catch (Exception)
+            {
+                // Continue.
+            }
+
+            //Alla oleva on testausta varten DEBUG tilassa.
+#if DEBUG
+
+            Debug.WriteLine("DEBUG mode active. Adding some test data to the database, if necessary.");
 
             List<User> us = new List<User>()
             {
@@ -303,7 +343,7 @@ namespace Picture_Catalog.Controllers
             }
             catch (Exception e)
             {
-                int koe = 0;
+                // Continue.
             }
 
             List<PictureSet> ps = new List<PictureSet>()
@@ -320,7 +360,7 @@ namespace Picture_Catalog.Controllers
             }
             catch (Exception e)
             {
-                int koe = 0;
+                // Continue.
             }
 
             List<Picture> pi = new List<Picture>()
@@ -341,7 +381,7 @@ namespace Picture_Catalog.Controllers
             }
             catch (Exception e)
             {
-                int koe = 0;
+                // Continue.
             }
 
             List<PictureSetPicture> psp = new List<PictureSetPicture>()
@@ -369,7 +409,7 @@ namespace Picture_Catalog.Controllers
             }
             catch (Exception e)
             {
-                int koe = 0;
+                // Continue.
             }
 
             List<AllowedUser> au = new List<AllowedUser>()
@@ -392,10 +432,10 @@ namespace Picture_Catalog.Controllers
             }
             catch (Exception e)
             {
-                int koe = 0;
+                throw new OperationCanceledException("500@Adding initial data to an empty database failed.");
             }
-            //Yllä oleva on testausta varten
-            */
+#endif
+
         }
  
         /// <summary>
@@ -404,13 +444,8 @@ namespace Picture_Catalog.Controllers
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-#if USESWAGGER
-        [HttpPost("GetPictures")]
-#else
         [HttpPost]
         [Route("api/Pictures/GetPictures")]
-#endif
-
         public IEnumerable<Picture> GetAllPictures([FromBody]IntWrapper id)
         {
 
@@ -422,14 +457,14 @@ namespace Picture_Catalog.Controllers
                 // Katsotaan, onko käyttäjä olemassa.
                 if (!CanIPass(tempUser))
                 {
-                    throw new Exception("403@Forbidden. Please try to log in again.");
+                    throw new CustomException("403@Forbidden. Please try to log in again.");
                 }
 
                 // Katsotaan, onko kuvasetti olemassa.
                 TempLog user = _currentUsers.Find(q => q.mTemporaryID == tempUser);
                 if (null == _context.dbPictureSets.Find(id.mPSID))
                 {
-                    throw new Exception("422@Couldn't find applied pictureset.");
+                    throw new CustomException("422@Couldn't find pictureset.");
                 }
 
                 // Katsotaan, onko käyttäjällä oikeutta katsella tätä kuvasettiä.
@@ -470,10 +505,27 @@ namespace Picture_Catalog.Controllers
 
                 //Luetaan tietokannasta kaikki kuvasetin kuvat listaan. 
                 PictureSet picSet = _context.dbPictureSets.Find(id.mPSID);
-                return GetPictures(picSet);
+                List<Picture> pictures = GetPictures(picSet);
+
+                //Jos lista on tyhjä, lisätään sinne yksi olematon kuva, jolla voimme välittää
+                //tiedon kuvasetistä, joka siis on tyhjä.
+                if (pictures.Count() == 0)
+                {
+                    Picture temp = new Picture();
+                    temp.PictureId = -1;
+                    temp.cPictureSets = null;
+                    temp.mUserId = -1;
+                    temp.mPictureSet = picSet.mPictureSet;
+                    pictures.Add(temp);
+                }
+                return pictures;
             }
             catch (Exception e)
             {
+                if (e is CustomException)
+                {
+                    throw;
+                }
                 throw new Exception("500@GetAllPictures encountered an internal server error.", e);
             }
 
@@ -495,28 +547,25 @@ namespace Picture_Catalog.Controllers
         /// </summary>
         /// <param name="set"></param>
         /// <returns></returns>
-#if USESWAGGER
-        [HttpPost("AddPictureset")]
-#else
         [HttpPost]
         [Route("api/Pictures/AddPictureset")]
-#endif
         public IEnumerable<Button> AddSet([FromBody]PictureSetWrapper set)
         {
             try
             {
                 PictureSet picSet = set.cPictureSet;
+                Application[] applications = set.cApplications;
                 int tempUser = set.mKey;
 
                 // Katsotaan, onko käyttäjä olemassa.
                 if (!CanIPass(tempUser))
                 {
-                    throw new Exception("403@Forbidden. Please try to log in again.");
+                    throw new CustomException("403@Forbidden. Please try to log in again.");
                 }
 
                 //Luodaan kuvasetti.
                 TempLog user = _currentUsers.Find(q => q.mTemporaryID == tempUser);
-                CreatePictureSet(picSet, user);
+                CreatePictureSet(picSet, applications.ToList(),  user);
 
                 //Luonnin operaation jälkeen annetaan frontendille päivitetty nappulalista.
                 return GetButtons(_context.dbUsers.Single(e => e.mUser==user.mUser));
@@ -524,6 +573,10 @@ namespace Picture_Catalog.Controllers
             }
             catch (Exception e)
             {
+                if (e is CustomException)
+                {
+                    throw;
+                }
                 throw new Exception("500@AddPictureset encountered an internal server error.", e);
             }
         }
@@ -534,12 +587,8 @@ namespace Picture_Catalog.Controllers
         /// </summary>
         /// <param name="set"></param>
         /// <returns></returns>
-#if USESWAGGER
-        [HttpPost("RemovePictureset")]
-#else
         [HttpPost]
         [Route("api/Pictures/RemovePictureset")]
-#endif
         public IEnumerable<Button> RemoveSet([FromBody] PictureSetWrapper set)
         {
             try
@@ -550,7 +599,7 @@ namespace Picture_Catalog.Controllers
                 // Katsotaan, onko sessio olemassa.
                 if (!CanIPass(tempUser))
                 {
-                    throw new Exception("403@Forbidden. Please try to log in again.");
+                    throw new CustomException("403@Forbidden. Please try to log in again.");
                 }
 
                 //Katsotaan, onko käyttäjällä olemassa poistettava kuvakokoelma.
@@ -569,8 +618,8 @@ namespace Picture_Catalog.Controllers
                 {
 
                     //Jos annettu kuvasetin id
-                    if (picSet != null && picSet.mUserId > 0) {
-                        picSet = _context.dbPictureSets.Find(picSet.mUserId);
+                    if (picSet != null && picSet.PictureSetId > 0) {
+                        picSet = _context.dbPictureSets.Find(picSet.PictureSetId);
 
                         //Varmistetaan, että saatu kuvasetti kuuluu tälle käyttäjälle
                         if (picSet != null)
@@ -589,7 +638,7 @@ namespace Picture_Catalog.Controllers
 
                 if (null == picSet)
                 {
-                   throw new Exception("422@Couldn't remove asked picture set.");
+                   throw new CustomException("422@Couldn't remove asked picture set.");
                 }
 
                 //Poistetaan kuvataulusta kaikki kuvat, jotka esiintyvät vain tässä kuvakokoelmassa
@@ -622,6 +671,10 @@ namespace Picture_Catalog.Controllers
             } 
             catch (Exception e)
             {
+                if (e is CustomException)
+                {
+                    throw;
+                }
                 throw new Exception("500@RemoveSet encountered an internal server error.", e);
             }
         }
@@ -631,14 +684,9 @@ namespace Picture_Catalog.Controllers
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-#if USESWAGGER
-        [HttpPost("SaveDat")]
-        [Route("api/Pictures/SaveData/{id:int:min(1)}")]
-#else
         [HttpPost]
         [Route("api/Pictures/SaveData/{id:int:min(1)}")]
         [Produces("application/json")]
-#endif
         public JsonResult SaveData(int id, [FromBody] byte[] obj)
         {
             try
@@ -648,7 +696,7 @@ namespace Picture_Catalog.Controllers
                 // Katsotaan, onko käyttäjä olemassa.
                 if (!CanIPass(tempUser))
                 {
-                    throw new Exception("403@Forbidden. Please try to log in again.");
+                    throw new CustomException("403@Forbidden. Please try to log in again.");
                 }
 
                 //Käyttäjä on olemassa, yritetään ladata kuva Cloudinaryyn.
@@ -657,9 +705,8 @@ namespace Picture_Catalog.Controllers
                 if (publicId != null)
                 {
 
-                    //Lataus onnistui. Palautetaan kuvan url-osoite frontendiin ja 
-                    //otetaan publicId väliaikaiseen talteen.
-                    Picture pic = new Picture()
+                    //Lataus onnistui. Otetaan tiedot väliaikaiseen talteen.
+                    _publicIds.Add(new PublicId(new Picture()
                     {
                         cPictureSets = null,
                         mLegend = null,
@@ -667,14 +714,27 @@ namespace Picture_Catalog.Controllers
                         mURL = publicId,
                         mUserId = 0,
                         PictureId = 0
-                    };
-                    _publicIds.Add(publicId);
-                    return Json(pic);
+                    }, user));
+
+                    // Palautetaan kuvan url - osoite frontendiin.
+                    return Json(new Picture()
+                    {
+                        cPictureSets = null,
+                        mLegend = null,
+                        mPictureSet = null,
+                        mURL = publicId,
+                        mUserId = 0,
+                        PictureId = 0
+                    });
                 }
-                throw new Exception("422@Cloudinary failed. Picture data lost.");
+                throw new CustomException("422@Cloudinary failed. Picture data lost.");
             } 
             catch (Exception e)
             {
+                if (e is CustomException)
+                {
+                    throw;
+                }
                 throw new Exception("500@SaveData encountered an internal server error.", e);
             }
         }
@@ -685,13 +745,8 @@ namespace Picture_Catalog.Controllers
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-#if USESWAGGER
-        [HttpPost("SavePic")]
-#else
         [HttpPost]
         [Route("api/Pictures/SavePicture")]
-#endif
-        
         public IEnumerable<Picture> SavePicture([FromBody]PictureWrapper obj)
         {
 
@@ -702,92 +757,36 @@ namespace Picture_Catalog.Controllers
                 // Katsotaan, onko sessio olemassa.
                 if (!CanIPass(tempUser))
                 {
-                    throw new Exception("403@Forbidden. Please try to log in again.");
+                    throw new CustomException("403@Forbidden. Please try to log in again.");
                 }
 
                 //Katsotaan, että kuva ja kuvasetti ovat kunnossa.
                 TempLog user = _currentUsers.Find(q => q.mTemporaryID == tempUser);
                 Picture pic = obj.mPicture;
                 pic.cPictureSets = null;
-                string picSetName = pic.mPictureSet;
-                if (pic == null || picSetName == null)
+                if (pic == null || pic.mPictureSet == null)
                 {
-                    throw new Exception("403@Forbidden. You didn't give valid picture data.");
+                    throw new CustomException("403@Forbidden. You didn't give valid picture data.");
                 }
-                PictureSet picSet = _context.dbPictureSets.FirstOrDefault(q => q.mPictureSet == picSetName);
+                PictureSet picSet = _context.dbPictureSets.FirstOrDefault(q => q.mPictureSet == pic.mPictureSet);
                 int userId = _context.dbUsers.First(o => o.mUser == user.mUser).UserId;
+
+                // Kuvasetin nimi ei saa olla jo valmiina käytössä, ellei se kuulu tälle käyttäjälle.
                 if (picSet != null && picSet.mUserId != userId)
                 {
-                    throw new Exception("403@Forbidden. You're trying to use a reserved picture set name.");
+                    throw new CustomException("403@Forbidden. You're trying to use a reserved picture set name.");
                 }
                 pic.mUserId = userId;
 
-                //Tarkastetaan, löytyykö kuva tilapäislistasta _publicIds.
-                int index = _publicIds.IndexOf(pic.mURL);
-                if (index != -1)
-                {
-
-                    //Poistetaan kyseinen indeksi tilapäislistasta.
-                    _publicIds.RemoveAt(index);
-
-                    //Haetaan kuvan url Cloudinarysta.
-                    GetResourceResult temp = CloudinaryController.FindFromCloudinary(pic.mURL);
-                    if (temp != null)
-                    {
-
-                        //Löyty Cloudinarysta
-                        pic.mURL = temp.Url;
-                        pic.mPublicId = temp.PublicId;
-                    }
-                    else
-                    {
-                        pic.mPublicId = null;
-                    }
-                }
-                else
-                {
-                    pic.mPublicId = null;
-                }
-                int picSetId = 0;
-
-                //Tallennetaan uusi kuva tietokantaan.    
-                _context.dbPictures.Add(pic);
-                _context.SaveChanges();
-
-                //Jos halutun nimistä kuvasettiä ei ole olemassa, se pitää luoda.
-                if (picSet == null)
-                {
-                    picSet = new PictureSet()
-                    {
-                        mPictureSet = picSetName,
-                        mUserId = userId,
-                        cAllowedUsers = null,
-                        cPictures = new List<PictureSetPicture>()
-                        {
-                            new PictureSetPicture() { mPictureId = pic.PictureId }
-                        }
-                    };
-                    picSetId = CreatePictureSet(picSet, user);
-                }
-                else
-                {
-                    picSetId = picSet.PictureSetId;
-                }
-
-                //Kuvan yhteys kuvasettiin pitää kirjata referenssitauluun.
-                PictureSetPicture psp = new PictureSetPicture()
-                {
-                    mPictureSetId = picSetId,
-                    mPictureId = pic.PictureId
-                };
-                _context.dbPictureSetPictures.Add(psp);
-                _context.SaveChanges();
-
-                //Luetaan tietokannasta kaikki kuvasetin kuvat listaan. 
-                return GetPictures(picSet);
+                // Tallennetaan kuva tietokantaan ja palautetaan kuvalista kuvasetistä, johon kuva tallennettiin.
+                return SavePictureToDatabase(pic, user, picSet);
             }
             catch (Exception e)
             {
+                if (e is CustomException)
+                {
+                    throw;
+                }
                 throw new Exception("500@SavePicture encountered an internal server error.", e);
             }
         }
@@ -798,13 +797,8 @@ namespace Picture_Catalog.Controllers
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-#if USESWAGGER
-        [HttpPost("Remove")]
-#else
         [HttpPost]
         [Route("api/Pictures/RemovePicture")]
-#endif
-
         public IEnumerable<Picture> RemovePicture([FromBody] PictureWrapper obj)
         {
 
@@ -816,7 +810,7 @@ namespace Picture_Catalog.Controllers
                 // Katsotaan, onko sessio olemassa.
                 if (!CanIPass(tempUser))
                 {
-                    throw new Exception("403@Forbidden. Please try to log in again.");
+                    throw new CustomException("403@Forbidden. Please try to log in again.");
                 }
 
                 TempLog user = _currentUsers.Find(q => q.mTemporaryID == tempUser);
@@ -834,7 +828,9 @@ namespace Picture_Catalog.Controllers
 
                     //Avaimella ei saatu oikeaa kuvaa. Yritetään hakea URL osoitteella...
                     pic = obj.mPicture;
-                    pictureId = _context.dbPictures.FirstOrDefault(q => q.mURL == pic.mURL).PictureId;
+                    if (pic.mURL != null) { 
+                        pictureId = _context.dbPictures.FirstOrDefault(q => q.mURL == pic.mURL).PictureId;
+                    }
                 }
                 else
                 {
@@ -882,6 +878,10 @@ namespace Picture_Catalog.Controllers
             }
             catch (Exception e)
             {
+                if (e is CustomException)
+                {
+                    throw;
+                }
                 throw new Exception("500@RemovePicture encountered an internal server error.", e);
             }
         }
@@ -891,13 +891,8 @@ namespace Picture_Catalog.Controllers
         /// missä se on olemassa.
         /// </summary>
         /// <param name="obj"></param>
-#if USESWAGGER
-        [HttpPost("Delete")]
-#else
         [HttpPost]
         [Route("api/Pictures/DeletePicture")]
-#endif
-
         public void DeletePicture([FromBody] PictureWrapper obj)
         {
             try
@@ -907,7 +902,7 @@ namespace Picture_Catalog.Controllers
                 // Katsotaan, onko käyttäjä olemassa.
                 if (!CanIPass(tempUser))
                 {
-                    throw new Exception("403@Forbidden. Please try to log in again.");
+                    throw new CustomException("403@Forbidden. Please try to log in again.");
                 }
 
                 // Katsotaan, onko kuva olemassa kyseisellä käyttäjällä ja annetulla URL:lla.
@@ -918,7 +913,7 @@ namespace Picture_Catalog.Controllers
                 pic = pics.Single(e => e.mURL==pic.mURL);
                 if (pic == null)
                 {
-                    throw new Exception("422@Coudn't delete the picture, because it doesn't exist in a database");
+                    throw new CustomException("422@Coudn't delete the picture, because it doesn't exist in a database");
                 }
 
                 // Käydään läpi referenssitaulukon kaikki rivit ja poistetaan ne, joilla
@@ -943,6 +938,10 @@ namespace Picture_Catalog.Controllers
             }
             catch (Exception e)
             {
+                if (e is CustomException)
+                {
+                    throw;
+                }
                 throw new Exception("500@DeletePicture encountered an internal server error.", e);
             }
         }
@@ -956,12 +955,8 @@ namespace Picture_Catalog.Controllers
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-#if USESWAGGER
-        [HttpPost("GetApplications")]
-#else
         [HttpPost]
         [Route("api/Pictures/GetApplications")]
-#endif
         public IEnumerable<Application> GetApplications([FromBody] int id)
         {
             try
@@ -972,7 +967,7 @@ namespace Picture_Catalog.Controllers
                 //Katsotaan, onko sessio olemassa
                 if (!CanIPass(tempUser))
                 {
-                    throw new Exception("403@Forbidden. Please try to log in again.");
+                    throw new CustomException("403@Forbidden. Please try to log in again.");
                 }
 
                 //Haetaan tälle käyttäjälle osoitetut hakemukset
@@ -980,20 +975,30 @@ namespace Picture_Catalog.Controllers
                 int userId = _context.dbUsers.Single(s => s.mUser == user.mUser).UserId;
                 foreach (var hak in _context.dbAppliedRights.Where(
                     s => s.mOwnerUserId == userId).ToList())
-                {
-                    Application app = new Application();
+                {  
                     User usr = _context.dbUsers.Single(d => d.UserId == hak.mApplicantUserId);
-                    app.mApplicantUser = usr.mUser;
-                    app.mApplicantName = usr.mName;
-                    app.mPictureSet = _context.dbPictureSets.Single(
-                        e => e.PictureSetId == hak.mPictureSetId).mPictureSet;
-                    rights.Add(app);
+
+                    // Käyttäjällä ei voi olla hakemuksia itselleen.
+                    if (usr.UserId != userId)
+                    {
+                        Application app = new Application();
+                        app.mGranted = false;
+                        app.mApplicantUser = usr.mUser;
+                        app.mApplicantName = usr.mName;
+                        app.mPictureSet = _context.dbPictureSets.Single(
+                            e => e.PictureSetId == hak.mPictureSetId).mPictureSet;
+                        rights.Add(app);
+                    }
                 }
 
                 return rights;
             } 
             catch (Exception e)
             {
+                if (e is CustomException)
+                {
+                    throw;
+                }
                 throw new Exception("500@GetApplications encountered an internal server error.", e);
             }
         }
@@ -1004,12 +1009,8 @@ namespace Picture_Catalog.Controllers
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-#if USESWAGGER
-        [HttpPost("GetAlloweds")]
-#else
         [HttpPost]
         [Route("api/Pictures/GetAlloweds")]
-#endif
         public IEnumerable<Application> GetAlloweds([FromBody] int id)
         {
             try
@@ -1019,7 +1020,7 @@ namespace Picture_Catalog.Controllers
                 // Katsotaan, onko sessio olemassa.
                 if (!CanIPass(id))
                 {
-                    throw new Exception("403@Forbidden. Please try to log in again.");
+                    throw new CustomException("403@Forbidden. Please try to log in again.");
                 }
 
                 //Haetaan tämän käyttäjän myöntämät käyttöluvat
@@ -1028,19 +1029,138 @@ namespace Picture_Catalog.Controllers
                 foreach (var hak in _context.dbAllowedUsers.Where(
                     s => s.mOwnerUserId == userId).ToList())
                 {
-                    Application app = new Application();
                     User usr = _context.dbUsers.Single(d => d.mUser == hak.mAllowedUser);
-                    app.mApplicantUser = usr.mUser;
-                    app.mApplicantName = usr.mName;
-                    app.mPictureSet = hak.mPictureSet;
-                    rights.Add(app);
+
+                    // Käyttäjä ei voi muokata omaa oikeuttaan päästä omiin kuviinsa.
+                    if (usr.UserId != userId)
+                    {
+                        Application app = new Application();
+                        app.mGranted = true;
+                        app.mApplicantUser = usr.mUser;
+                        app.mApplicantName = usr.mName;
+                        app.mPictureSet = hak.mPictureSet;
+                        rights.Add(app);
+                    }
                 }
 
                 return rights;
             } 
             catch (Exception e)
             {
+                if (e is CustomException)
+                {
+                    throw;
+                }
                 throw new Exception("500@GetAlloweds encountered an internal server error.", e);
+            }
+        }
+
+        /// <summary>
+        /// Tällä funktiolla frontend tallentaa backendiin myönnetyt ja evätyt kuvasettien käyttöluvat.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="permissions"></param>
+        /// <exception cref="Exception"></exception>
+        [HttpPut]
+        [Route("api/Pictures/SetPermissions")]
+        public void SetPermissions([FromHeader(Name = "Password")] int id, [FromBody] Application[] permissions)
+        {
+            try
+            {
+                List<Application> rights = new List<Application>(permissions);
+
+                //Katsotaan, onko sessio olemassa
+                if (!CanIPass(id))
+                {
+                    throw new CustomException("403@Forbidden. Please try to log in again.");
+                }
+                TempLog user = _currentUsers.Find(q => q.mTemporaryID == id);
+                int userId = _context.dbUsers.Single(s => s.mUser == user.mUser).UserId;
+
+                // Lisätään tietokantaan uudet tämän käyttäjän myöntämät ja epäämät kuvien käyttöluvat.
+                foreach (var hak in rights)
+                {
+                    int applicantUserId;
+                    int pictureSetId;
+
+                    // Varmistetaan frontendin lähettämän datan oikeellisuus.
+                    try
+                    {
+                        applicantUserId = _context.dbUsers.Single(s => s.mUser == hak.mApplicantUser).UserId;
+                        PictureSet picSet = _context.dbPictureSets.FirstOrDefault(q => q.mPictureSet == hak.mPictureSet);
+                        if (picSet != null && picSet.mUserId==userId)
+                        {
+                            pictureSetId = picSet.PictureSetId;
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+                    catch (Exception e) 
+                    {
+                        continue;
+                    }
+
+                    if (hak.mGranted == true)
+                    {
+
+                        // Jos täsmälleen samaa käyttölupaa ei ole jo olemassa, luodaan uusi käyttölupa.
+                        if (_context.dbAllowedUsers.FirstOrDefault(k => k.mOwnerUserId == userId
+                                && k.mAllowedUser == hak.mApplicantUser && k.mPictureSet == hak.mPictureSet) == null)
+                        {
+                            _context.dbAllowedUsers.Add(new AllowedUser
+                            {
+                                mOwnerUserId = userId,
+                                mAllowedUser = hak.mApplicantUser,
+                                mPictureSet = hak.mPictureSet
+                            });
+                            _context.SaveChanges();
+                        }
+
+                        // Varmistetaan, ettei hakemuksissa ole täsmälleen samaa kohdetta.
+                        AppliedRight r = _context.dbAppliedRights.FirstOrDefault(k => k.mOwnerUserId == userId
+                                && k.mApplicantUserId == applicantUserId && k.mPictureSetId == pictureSetId);
+                        if (r != null)
+                        {
+                            _context.dbAppliedRights.Remove(r);
+                            _context.SaveChanges();
+                        }
+                    }
+                    else
+                    {
+
+                        // Jos täsmälleen samaa hakemusta ei ole olemassa, luodaan uusi hakemus.
+                        if (_context.dbAppliedRights.FirstOrDefault(k => k.mOwnerUserId == userId
+                                && k.mApplicantUserId == applicantUserId && k.mPictureSetId == pictureSetId) == null)
+                        {
+                            _context.dbAppliedRights.Add(new AppliedRight
+                            {
+                                mApplicantUserId = applicantUserId,
+                                mOwnerUserId = userId,
+                                mPictureSetId = pictureSetId
+                            });
+                            _context.SaveChanges();
+                        }
+
+                        // Varmistetaan, ettei käyttöluvissa ole täsmälleen samaa kohdetta.
+                        AllowedUser u = _context.dbAllowedUsers.FirstOrDefault(k => k.mOwnerUserId == userId
+                                && k.mAllowedUser == hak.mApplicantUser && k.mPictureSet == hak.mPictureSet);
+                        if (u != null)
+                        {
+                            _context.dbAllowedUsers.Remove(u);
+                            _context.SaveChanges();
+                        }
+                    }
+                }     
+            }
+            catch (Exception e)
+            {
+                if (e is CustomException)
+                {
+                    throw;
+                }
+                throw new Exception("500@SetPermissions encountered an internal server error.", e);
             }
         }
 
@@ -1116,6 +1236,127 @@ namespace Picture_Catalog.Controllers
         }
 
         /// <summary>
+        /// Tällä apufunktiolla tallennetaan kuvan metatiedot tietokantaan. Varsinainen kuvadata tallennetaan 
+        /// Cloudinaryyn ja sitä SavePictureToDatabase funktio ei käsittele. Ennen kuin tätä funktiota voi kutsua,
+        /// pitää kuvadata olla Cloudinaryssa ja kuvan URL-osoite pitää olla annettu.
+        /// </summary>
+        /// <param name="pic"></param>
+        /// <param name="user"></param>
+        /// <param name="picSet"></param>
+        /// <returns></returns>
+        private List<Picture> SavePictureToDatabase(Picture pic, TempLog user, PictureSet picSet = null)
+        {
+
+            // Tarkastetaan, löytyykö kuva tilapäislistasta _publicIds.
+            int index = _publicIds.FindIndex(o => o.mPicture.mURL == pic.mURL);
+            if (index != -1)
+            {
+
+                //Poistetaan kyseinen indeksi tilapäislistasta.
+                _publicIds.RemoveAt(index);
+
+                //Haetaan kuvan url Cloudinarysta.
+                GetResourceResult temp = CloudinaryController.FindFromCloudinary(pic.mURL);
+                if (temp != null)
+                {
+
+                    //Löyty Cloudinarysta
+                    pic.mURL = temp.Url;
+                    pic.mPublicId = temp.PublicId;
+                }
+                else
+                {
+                    pic.mPublicId = null;
+                }
+            }
+            else
+            {
+                pic.mPublicId = null;
+            }
+            int picSetId = 0;
+
+            // Tarkastetaan, onko meillä mitään kuvasetin nimeä.
+            if (pic.mPictureSet == null || pic.mPictureSet.Length == 0)
+            {
+                if (picSet.mPictureSet != null && picSet.mPictureSet.Length > 0)
+                {
+                    pic.mPictureSet = picSet.mPictureSet;
+                }
+                else
+                {
+
+                    // Mitään kuvasetin nimeä ei ole annettu. Jos kuva kuitenkin löytyy tilapäislistasta, on se
+                    // ladattu Cloudinaryyn, jolloin meidän on pakko tallentaa se myös tietokantaan. Tällöin luomme
+                    // käyttäjälle kuvasetin "DEFAULT", johon kuva tallennetaan.
+                    if (index != -1)
+                    {
+                        pic.mPictureSet = "DEFAULT";
+                        PictureSet ps = _context.dbPictureSets.FirstOrDefault(q => q.mPictureSet == "DEFAULT");
+                        if (ps == null)
+                        {
+                            picSet = new PictureSet()
+                            {
+                                mPictureSet = pic.mPictureSet,
+                                mUserId = _context.dbUsers.First(o => o.mUser == user.mUser).UserId,
+                                cAllowedUsers = null,
+                                cPictures = null
+                            };
+                            picSetId = CreatePictureSet(picSet, null, user);
+                        }    
+                    }
+                }
+            }
+
+            //Tallennetaan uusi kuva tietokantaan. Tämä luo parametriin pic arvon kenttään pic.PictureId. 
+            _context.dbPictures.Add(pic);
+            _context.SaveChanges();
+
+            //Jos kuvasettiä ei ole olemassa, se pitää luoda.
+            if (picSet == null)
+            {
+                picSet = new PictureSet()
+                {
+                    mPictureSet = pic.mPictureSet,
+                    mUserId = _context.dbUsers.First(o => o.mUser == user.mUser).UserId,
+                    cAllowedUsers = null,
+                    cPictures = new List<PictureSetPicture>()
+                        {
+                            new PictureSetPicture() { mPictureId = pic.PictureId }
+                        }
+                };
+                /*
+                // Luodaan kuvasetti tietokantaan siten, että kukaan muu käyttäjä ei voi 
+                // katsella sitä.
+                List<Application> applications = new List<Application>() {
+                        new Application() {
+                                mPictureSet = pic.mPictureSet,
+                                mApplicantName = null,
+                                mApplicantUser = "##REMOVE##",
+                                mGranted = false
+                        }
+                    };
+                */
+                picSetId = CreatePictureSet(picSet, null, user);
+            }
+            else
+            {
+                picSetId = picSet.PictureSetId;
+            }
+
+            //Kuvan yhteys kuvasettiin pitää kirjata referenssitauluun.
+            PictureSetPicture psp = new PictureSetPicture()
+            {
+                mPictureSetId = picSetId,
+                mPictureId = pic.PictureId
+            };
+            _context.dbPictureSetPictures.Add(psp);
+            _context.SaveChanges();
+
+            //Luetaan tietokannasta kaikki kuvasetin kuvat listaan. 
+            return GetPictures(picSet);
+        }
+
+        /// <summary>
         /// Tällä apufunktiolla luodaan tietokantaan kuvakokoelma, jollei sen nimistä ole
         /// valmiiksi olemassa, jolloin lisätään vain viittaukset ja oikeudet. Mahdollisissa luotavan
         /// kuvakokoelman sisältämissä viittauksissa kuviin huomioon otetaan vain kunkin
@@ -1129,7 +1370,7 @@ namespace Picture_Catalog.Controllers
         /// käyttöoikeus poistetaan listauksessa olevilta muilta käyttäjiltä.
         /// </summary>
         /// <param name="picSet"></param>
-        private int CreatePictureSet(PictureSet picSet, TempLog user)
+        private int CreatePictureSet(PictureSet picSet, List<Application> applications, TempLog user)
         {
             PictureSet temp = picSet;
 
@@ -1172,14 +1413,14 @@ namespace Picture_Catalog.Controllers
             {
                 int flag = 0;
 
-                foreach (var allo in picSet.cAllowedUsers)
+                foreach (var allo in applications)
                 {
 
                     //Käyttäjä haluaa kaikkien muiden käyttäjien voivan katsella tätä kuvasettiä.
-                    if ("##ALL##" == allo.mAllowedUser) flag = 1;
+                    if ("##ALL##" == allo.mApplicantUser) flag = 1;
 
-                    //Käyttäjä haluaa poistaa kuvasetin katseluoikeuden luettelemiltaan käyttäjiltä.
-                    if ("##REMOVE##" == allo.mAllowedUser) flag = 2;
+                    //Käyttäjä haluaa poistaa kuvasetin katseluoikeuden kaikilta muilta käyttäjiltä.
+                    if ("##REMOVE##" == allo.mApplicantUser) flag = 2;
                 }
 
                 switch (flag)
@@ -1187,30 +1428,43 @@ namespace Picture_Catalog.Controllers
                     case 0:
                         {
 
-                            //Tässä vaihtoehdossa lisätään käyttöoikeuksia listan mukaisesti.
-                            foreach (var allo in picSet.cAllowedUsers)
+                            //Tässä vaihtoehdossa lisätään tai poistetaan käyttöoikeuksia listan mukaisesti.
+                            foreach (var allo in applications)
                             {
-                                User usr = _context.dbUsers.FirstOrDefault(e => e.mUser == allo.mAllowedUser);
-                                if (null != usr)
+                                if (allo.mGranted == true)
                                 {
 
-                                    //Lisätään uusi katseluoikeus.
-                                    _context.dbAllowedUsers.Add(new AllowedUser()
+                                    User usr = _context.dbUsers.FirstOrDefault(e => e.mUser == allo.mApplicantUser);
+                                    if (null != usr)
                                     {
-                                        mOwnerUserId = _context.dbUsers.FirstOrDefault(e => e.mUser == user.mUser).UserId,
-                                        mAllowedUser = allo.mAllowedUser,
-                                        mPictureSet = ps.mPictureSet
-                                    });
 
-                                    //Poistetaan mahdollinen vastaava pyyntö katseluoikeuteen.
-                                    AppliedRight ask = _context.dbAppliedRights.FirstOrDefault(
-                                        s => s.mApplicantUserId == usr.UserId &&
-                                        s.mPictureSetId == ps.PictureSetId &&
-                                        s.mOwnerUserId == temp.mUserId);
-                                    if (ask != null)
-                                    {
-                                        _context.dbAppliedRights.Remove(ask);
+                                        //Lisätään uusi katseluoikeus.
+                                        _context.dbAllowedUsers.Add(new AllowedUser()
+                                        {
+                                            mOwnerUserId = _context.dbUsers.FirstOrDefault(e => e.mUser == user.mUser).UserId,
+                                            mAllowedUser = allo.mApplicantUser,
+                                            mPictureSet = ps.mPictureSet
+                                        });
+
+                                        //Poistetaan mahdollinen vastaava pyyntö katseluoikeuteen.
+                                        AppliedRight ask = _context.dbAppliedRights.FirstOrDefault(
+                                            s => s.mApplicantUserId == usr.UserId &&
+                                            s.mPictureSetId == ps.PictureSetId &&
+                                            s.mOwnerUserId == temp.mUserId);
+                                        if (ask != null)
+                                        {
+                                            _context.dbAppliedRights.Remove(ask);
+                                        }
+                                        _context.SaveChanges();
                                     }
+                                }
+                                else
+                                {
+
+                                    //Poistetaan katseluoikeus.
+                                    AllowedUser usr = _context.dbAllowedUsers.FirstOrDefault(
+                                            s => s.mPictureSet == ps.mPictureSet && s.mAllowedUser == allo.mApplicantUser);
+                                    _context.dbAllowedUsers.Remove(usr);
                                     _context.SaveChanges();
                                 }
                             }
@@ -1243,16 +1497,18 @@ namespace Picture_Catalog.Controllers
                     case 2:
                         {
 
-                            //Tässä vaihtoehdossa poistetaan listatut käyttöoikeudet
-                            foreach (var allo in picSet.cAllowedUsers)
+                            //Tässä vaihtoehdossa poistetaan kaikki kuvasettiin listatut käyttöoikeudet
+                            //lukuun ottamatta käytäjää itseään.
+                            AllowedUser[] allos = _context.dbAllowedUsers.Where(
+                                s => s.mPictureSet == temp.mPictureSet).ToArray();
+                            foreach (var allo in allos)
                             {
-          
-                                //Poistetaan katseluoikeus.
-                                AllowedUser usr = _context.dbAllowedUsers.FirstOrDefault(
-                                        s => s.mPictureSet == ps.mPictureSet && s.mAllowedUser == allo.mAllowedUser);
-                                _context.dbAllowedUsers.Remove(usr);
-                                _context.SaveChanges();
+                                if (allo.mAllowedUser != user.mUser)
+                                {
+                                    _context.dbAllowedUsers.Remove(allo);
+                                }
                             }
+                            _context.SaveChanges();
                             break;
                         }
                 }
@@ -1283,6 +1539,9 @@ namespace Picture_Catalog.Controllers
             user = _currentUsers.Find(q => q.mTemporaryID == tempUser);
             if (user == null || user.mLogTime.AddHours(1) < DateTime.Now)
             {
+                _timer.Stop();
+                _timer.Dispose();
+                _timer = null;
                 return false;
             }
             else
