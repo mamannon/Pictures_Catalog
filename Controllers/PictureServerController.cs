@@ -452,12 +452,16 @@ namespace Picture_Catalog.Controllers
             try
             {
 
-                int tempUser = id.mKey;
+                int tempUser = -1;
 
                 // Katsotaan, onko käyttäjä olemassa.
-                if (!CanIPass(tempUser))
+                if (id == null || !CanIPass(id.mKey))
                 {
                     throw new CustomException("403@Forbidden. Please try to log in again.");
+                }
+                else
+                {
+                    tempUser = id.mKey;
                 }
 
                 // Katsotaan, onko kuvasetti olemassa.

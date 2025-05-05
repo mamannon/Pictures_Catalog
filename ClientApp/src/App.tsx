@@ -241,8 +241,8 @@ const App = () => {
                 setPictureSet(json[0].mPictureSet);
             } else {
                 setChosenImageSet([]);
-                setPictureSet(json[0].mPictureSet);
-                window.alert("Couldn't get any pictures. Requested pictureset is either empty or you are not allowed to see pictures. If you are not allowed, the owner of the pictures may allow you to see the pictures at later time.")
+                setPictureSet("");
+                window.alert("Couldn't get any pictures. Requested pictureset is either empty or you are not allowed to see pictures. If you are not allowed, the owner of the pictures may allow you to see the pictures at later time.");
             }
         }).catch(error => {
             console.error("Error fetching data in buttonState: ", error);
@@ -707,7 +707,6 @@ const App = () => {
         sessionStorage.setItem("name", "");
         sessionStorage.setItem("password", "");
         setPictureSet("");
- //       setImages([]);
         setImageSet([]);
         setChosenImageSet([]);
         setBodyText("");
